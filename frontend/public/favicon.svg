@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#0052CC"/>
+  <!-- Blood drop shape -->
+  <path d="M50 15 C50 15 25 45 25 60 C25 75 36 85 50 85 C64 85 75 75 75 60 C75 45 50 15 50 15 Z" fill="white"/>
+  <!-- Glucose wave inside drop -->
+  <path d="M32 58 Q38 52 44 58 Q50 64 56 58 Q62 52 68 58" stroke="#0052CC" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Small sensor indicator -->
+  <circle cx="75" cy="25" r="10" fill="#36B37E"/>
+  <rect x="72" y="22" width="6" height="6" rx="1" fill="white"/>
+</svg>
