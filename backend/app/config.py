@@ -3,12 +3,14 @@ from pydantic import field_validator
 from functools import lru_cache
 import os
 import logging
+from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
-    # Database (SQLite by default)
+    # Database: set DATABASE_URL to Neon Postgres connection string for production;
+    # leave unset for local SQLite (default below).
     database_url: str = "sqlite:///./data/diatrack.db"
 
     # JWT
@@ -45,10 +47,41 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+    @property
+    def sync_database_url(self) -> str:
+        """URL for sync SQLAlchemy engine (psycopg2 for Postgres, sqlite for local)."""
+        url = self.database_url
+        if url.startswith("postgresql://") or url.startswith("postgresql+psycopg2://"):
+            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return url
+
+    @property
+    def async_database_url(self) -> str:
+        """URL for async SQLAlchemy engine (asyncpg for Postgres, aiosqlite for local)."""
+        url = self.database_url
+        if "postgresql" in url:
+            parsed = urlparse(url)
+            # asyncpg uses ssl=require, not sslmode=require
+            if parsed.query:
+                q = parse_qs(parsed.query, keep_blank_values=True)
+                if "sslmode" in q:
+                    q["ssl"] = q.pop("sslmode")
+                query = urlencode(q, doseq=True)
+            else:
+                query = parsed.query
+            netloc = parsed.netloc
+            path = parsed.path or "/"
+            scheme = "postgresql+asyncpg"
+            return urlunparse((scheme, netloc, path, parsed.params, query, parsed.fragment))
+        if url.startswith("sqlite:///"):
+            return url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
+        return url
+
 
 @lru_cache()
 def get_settings() -> Settings:
     settings = Settings()
-    # Ensure data directory exists
-    os.makedirs(settings.data_dir, exist_ok=True)
+    # Only ensure data directory exists when using SQLite (for local dev)
+    if "sqlite" in settings.database_url:
+        os.makedirs(settings.data_dir, exist_ok=True)
     return settings

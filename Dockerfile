@@ -17,7 +17,6 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -30,15 +29,10 @@ COPY backend/ .
 # Copy built frontend to static directory
 COPY --from=frontend-builder /app/frontend/dist ./static
 
-# Create data directory and non-root user
-RUN mkdir -p /app/data && \
-    useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
-
-# Copy entrypoint (runs as root to fix volume permissions, then drops to appuser)
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Create non-root user (no volume needed when using Neon)
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

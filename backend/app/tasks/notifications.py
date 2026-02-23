@@ -15,9 +15,9 @@ from app.models.app_settings import get_app_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Create separate engine for background tasks
+# Create separate engine for background tasks (same URL/connect_args as app database)
 connect_args = {"check_same_thread": False} if "sqlite" in settings.database_url else {}
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(settings.sync_database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 EMAIL_TEMPLATE = """

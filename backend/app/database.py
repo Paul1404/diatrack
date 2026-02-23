@@ -4,10 +4,10 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# SQLite specific settings
+# SQLite-specific settings; Postgres (Neon) uses sync_database_url with no connect_args
 connect_args = {"check_same_thread": False} if "sqlite" in settings.database_url else {}
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(settings.sync_database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

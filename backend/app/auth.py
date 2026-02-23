@@ -18,9 +18,8 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Async engine for FastAPI-Users
-DATABASE_URL = settings.database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
-async_engine = create_async_engine(DATABASE_URL)
+# Async engine for FastAPI-Users (asyncpg for Postgres, aiosqlite for SQLite)
+async_engine = create_async_engine(settings.async_database_url)
 async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
 
 

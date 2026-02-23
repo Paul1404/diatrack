@@ -21,8 +21,8 @@ Single Docker container running:
 | Component | Technology |
 |-----------|------------|
 | Backend API | FastAPI 0.109 · Python 3.12 |
-| Database | SQLite (file-based, persisted via volume) |
-| Auth | FastAPI-Users 13 · Cookie-based JWT (7-day expiry) |
+| Database | PostgreSQL (Neon) in production; SQLite for local dev |
+| Auth | FastAPI-Users 13 · Cookie-based JWT |
 | Background tasks | APScheduler (checks expiring devices every 15 min) |
 | Frontend | React 18 · TypeScript · Vite · Atlaskit components · Recharts |
 | Frontend serving | FastAPI serves the built Vite output as static files |
@@ -46,7 +46,8 @@ ALLOW_REGISTRATION=true
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JWT_SECRET` | `change-me-in-production` | Secret key for signing JWT tokens |
+| `JWT_SECRET` | (required) | Secret key for signing JWT tokens |
+| `DATABASE_URL` | (optional) | Neon Postgres connection string; if unset, uses local SQLite at `./data/diatrack.db` |
 | `ALLOW_REGISTRATION` | `false` | Set to `true` to allow new user sign-ups |
 
 ### 2. Build and run
@@ -68,13 +69,10 @@ docker compose up -d
 
 ## Data Persistence
 
-All data is stored in a single SQLite database at `/app/data/diatrack.db` inside the container, backed by the `diatrack_data` Docker volume.
+- **Production (Fly.io):** Set `DATABASE_URL` to your Neon PostgreSQL connection string (e.g. from the [Neon](https://neon.tech) dashboard or Cursor plugin). Data is stored in Neon; no volume is required.
+- **Local / Docker Compose:** If `DATABASE_URL` is not set, the app uses SQLite at `./data/diatrack.db`. With Docker Compose you can mount a volume for that path if you want to persist local data.
 
-**Backup:**
-
-```bash
-docker cp diatrack:/app/data/diatrack.db ./diatrack-backup.db
-```
+**Backup (Neon):** Use Neon’s backup/export tools or `pg_dump` against your Neon connection string. For local SQLite, copy the `./data/diatrack.db` file (or from the container: `docker cp diatrack:/app/data/diatrack.db ./diatrack-backup.db` if you run with a volume).
 
 ## API Endpoints
 
