@@ -61,14 +61,14 @@ class Settings(BaseSettings):
         url = self.database_url
         if "postgresql" in url:
             parsed = urlparse(url)
-            # asyncpg uses ssl=require, not sslmode=require
+            # asyncpg only accepts 'ssl' (not sslmode, channel_binding, etc.); keep query minimal
             if parsed.query:
-                q = parse_qs(parsed.query, keep_blank_values=True)
-                if "sslmode" in q:
-                    q["ssl"] = q.pop("sslmode")
+                orig = parse_qs(parsed.query, keep_blank_values=True)
+                ssl_val = (orig.get("sslmode") or orig.get("ssl") or [None])[0]
+                q = {"ssl": [ssl_val]} if ssl_val else {}
                 query = urlencode(q, doseq=True)
             else:
-                query = parsed.query
+                query = ""
             netloc = parsed.netloc
             path = parsed.path or "/"
             scheme = "postgresql+asyncpg"
