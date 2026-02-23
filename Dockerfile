@@ -17,6 +17,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -29,14 +30,15 @@ COPY backend/ .
 # Copy built frontend to static directory
 COPY --from=frontend-builder /app/frontend/dist ./static
 
-# Create data directory
-RUN mkdir -p /app/data
+# Create data directory and non-root user
+RUN mkdir -p /app/data && \
+    useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+# Copy entrypoint (runs as root to fix volume permissions, then drops to appuser)
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
-# Use uvicorn with access logging disabled (we have our own middleware)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+ENTRYPOINT ["/entrypoint.sh"]
