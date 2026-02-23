@@ -20,8 +20,10 @@ import {
   clearHistory,
 } from '../services/api';
 import DeleteIcon from '@atlaskit/icon/core/delete';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
+  const { user } = useAuth();
   const [, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,10 +56,7 @@ export default function Settings() {
 
   useEffect(() => {
     async function loadSettings() {
-      const [userRes, appRes] = await Promise.all([
-        getSettings(),
-        getAppSettings(),
-      ]);
+      const userRes = await getSettings();
       
       if (userRes.data) {
         setSettings(userRes.data);
@@ -65,20 +64,24 @@ export default function Settings() {
         setCatheterHours(String(userRes.data.catheter_default_hours));
         setReminderIntervals(userRes.data.reminder_intervals_hours.join(', '));
       }
-      
-      if (appRes.data) {
-        setSmtpHost(appRes.data.smtp_host || '');
-        setSmtpPort(String(appRes.data.smtp_port || 587));
-        setSmtpUser(appRes.data.smtp_user || '');
-        setSmtpFrom(appRes.data.smtp_from || '');
-        setSmtpTls(appRes.data.smtp_tls);
-        setAppUrl(appRes.data.app_url || '');
+
+      // SMTP/app-wide settings are restricted to superusers.
+      if (user?.is_superuser) {
+        const appRes = await getAppSettings();
+        if (appRes.data) {
+          setSmtpHost(appRes.data.smtp_host || '');
+          setSmtpPort(String(appRes.data.smtp_port || 587));
+          setSmtpUser(appRes.data.smtp_user || '');
+          setSmtpFrom(appRes.data.smtp_from || '');
+          setSmtpTls(appRes.data.smtp_tls);
+          setAppUrl(appRes.data.app_url || '');
+        }
       }
       
       setIsLoading(false);
     }
     loadSettings();
-  }, []);
+  }, [user?.is_superuser]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -243,128 +246,130 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="card" style={{ maxWidth: '600px', marginTop: '24px' }}>
-        <h2>E-Mail-Einstellungen (SMTP)</h2>
-        
-        {smtpMessage && (
-          <div
-            className={smtpMessage.type === 'error' ? 'error-message' : ''}
-            style={
-              smtpMessage.type === 'success'
-                ? {
-                    background: '#E3FCEF',
-                    color: '#006644',
-                    padding: '12px',
-                    borderRadius: '4px',
-                    marginBottom: '16px',
-                  }
-                : {}
-            }
-          >
-            {smtpMessage.text}
+      {user?.is_superuser && (
+        <div className="card" style={{ maxWidth: '600px', marginTop: '24px' }}>
+          <h2>E-Mail-Einstellungen (SMTP)</h2>
+          
+          {smtpMessage && (
+            <div
+              className={smtpMessage.type === 'error' ? 'error-message' : ''}
+              style={
+                smtpMessage.type === 'success'
+                  ? {
+                      background: '#E3FCEF',
+                      color: '#006644',
+                      padding: '12px',
+                      borderRadius: '4px',
+                      marginBottom: '16px',
+                    }
+                  : {}
+              }
+            >
+              {smtpMessage.text}
+            </div>
+          )}
+
+          <div className="form-field">
+            <label htmlFor="smtpHost">SMTP Server</label>
+            <Textfield
+              id="smtpHost"
+              value={smtpHost}
+              onChange={(e) => setSmtpHost((e.target as HTMLInputElement).value)}
+              placeholder="smtp.example.com"
+            />
           </div>
-        )}
 
-        <div className="form-field">
-          <label htmlFor="smtpHost">SMTP Server</label>
-          <Textfield
-            id="smtpHost"
-            value={smtpHost}
-            onChange={(e) => setSmtpHost((e.target as HTMLInputElement).value)}
-            placeholder="smtp.example.com"
-          />
-        </div>
+          <div className="form-field">
+            <label htmlFor="smtpPort">SMTP Port</label>
+            <Textfield
+              id="smtpPort"
+              type="number"
+              value={smtpPort}
+              onChange={(e) => setSmtpPort((e.target as HTMLInputElement).value)}
+              placeholder="587"
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="smtpPort">SMTP Port</label>
-          <Textfield
-            id="smtpPort"
-            type="number"
-            value={smtpPort}
-            onChange={(e) => setSmtpPort((e.target as HTMLInputElement).value)}
-            placeholder="587"
-          />
-        </div>
+          <div className="form-field">
+            <label htmlFor="smtpUser">SMTP Benutzer</label>
+            <Textfield
+              id="smtpUser"
+              value={smtpUser}
+              onChange={(e) => setSmtpUser((e.target as HTMLInputElement).value)}
+              placeholder="user@example.com"
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="smtpUser">SMTP Benutzer</label>
-          <Textfield
-            id="smtpUser"
-            value={smtpUser}
-            onChange={(e) => setSmtpUser((e.target as HTMLInputElement).value)}
-            placeholder="user@example.com"
-          />
-        </div>
+          <div className="form-field">
+            <label htmlFor="smtpPassword">SMTP Passwort</label>
+            <Textfield
+              id="smtpPassword"
+              type="password"
+              value={smtpPassword}
+              onChange={(e) => setSmtpPassword((e.target as HTMLInputElement).value)}
+              placeholder="Nur ausfüllen um zu ändern"
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="smtpPassword">SMTP Passwort</label>
-          <Textfield
-            id="smtpPassword"
-            type="password"
-            value={smtpPassword}
-            onChange={(e) => setSmtpPassword((e.target as HTMLInputElement).value)}
-            placeholder="Nur ausfüllen um zu ändern"
-          />
-        </div>
+          <div className="form-field">
+            <label htmlFor="smtpFrom">Absender E-Mail</label>
+            <Textfield
+              id="smtpFrom"
+              value={smtpFrom}
+              onChange={(e) => setSmtpFrom((e.target as HTMLInputElement).value)}
+              placeholder="noreply@example.com"
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="smtpFrom">Absender E-Mail</label>
-          <Textfield
-            id="smtpFrom"
-            value={smtpFrom}
-            onChange={(e) => setSmtpFrom((e.target as HTMLInputElement).value)}
-            placeholder="noreply@example.com"
-          />
-        </div>
+          <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Toggle
+              id="smtpTls"
+              isChecked={smtpTls}
+              onChange={() => setSmtpTls(!smtpTls)}
+            />
+            <label htmlFor="smtpTls" style={{ margin: 0 }}>TLS/STARTTLS verwenden</label>
+          </div>
 
-        <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Toggle
-            id="smtpTls"
-            isChecked={smtpTls}
-            onChange={() => setSmtpTls(!smtpTls)}
-          />
-          <label htmlFor="smtpTls" style={{ margin: 0 }}>TLS/STARTTLS verwenden</label>
-        </div>
+          <div className="form-field">
+            <label htmlFor="appUrl">App URL (für E-Mail-Links)</label>
+            <Textfield
+              id="appUrl"
+              value={appUrl}
+              onChange={(e) => setAppUrl((e.target as HTMLInputElement).value)}
+              placeholder="https://diatrack.example.com"
+            />
+          </div>
 
-        <div className="form-field">
-          <label htmlFor="appUrl">App URL (für E-Mail-Links)</label>
-          <Textfield
-            id="appUrl"
-            value={appUrl}
-            onChange={(e) => setAppUrl((e.target as HTMLInputElement).value)}
-            placeholder="https://diatrack.example.com"
-          />
-        </div>
+          <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+            <LoadingButton
+              appearance="primary"
+              onClick={handleSaveSmtp}
+              isLoading={isSavingSmtp}
+            >
+              SMTP speichern
+            </LoadingButton>
+          </div>
 
-        <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+          <h3 style={{ marginTop: '32px' }}>SMTP testen</h3>
+          <div className="form-field">
+            <label htmlFor="testEmail">Test E-Mail senden an</label>
+            <Textfield
+              id="testEmail"
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail((e.target as HTMLInputElement).value)}
+              placeholder="test@example.com"
+            />
+          </div>
           <LoadingButton
-            appearance="primary"
-            onClick={handleSaveSmtp}
-            isLoading={isSavingSmtp}
+            onClick={handleTestSmtp}
+            isLoading={isTesting}
+            isDisabled={!smtpHost}
           >
-            SMTP speichern
+            Test-E-Mail senden
           </LoadingButton>
         </div>
-
-        <h3 style={{ marginTop: '32px' }}>SMTP testen</h3>
-        <div className="form-field">
-          <label htmlFor="testEmail">Test E-Mail senden an</label>
-          <Textfield
-            id="testEmail"
-            type="email"
-            value={testEmail}
-            onChange={(e) => setTestEmail((e.target as HTMLInputElement).value)}
-            placeholder="test@example.com"
-          />
-        </div>
-        <LoadingButton
-          onClick={handleTestSmtp}
-          isLoading={isTesting}
-          isDisabled={!smtpHost}
-        >
-          Test-E-Mail senden
-        </LoadingButton>
-      </div>
+      )}
 
       <div className="card" style={{ maxWidth: '600px', marginTop: '24px' }}>
         <h2>Daten verwalten</h2>
