@@ -494,9 +494,10 @@ select,
     z-index: 1000;
   }
 
-  /* Header */
+  /* Header - must sit above nav-overlay (1000) so hamburger and slide-in nav remain clickable */
   .header {
     padding: 0 16px;
+    z-index: 1100;
   }
 
   .header h1 {
