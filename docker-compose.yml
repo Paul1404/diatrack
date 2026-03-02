@@ -22,14 +22,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-    volumes:
-      - data:/app/data
+    # No volume needed when using Neon Postgres (DATABASE_URL). For local SQLite, add: volumes: [data:/app/data]
     networks:
       - traefik
-
-volumes:
-  data:
-    name: diatrack_data
 
 networks:
   traefik:
