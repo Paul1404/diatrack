@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import os
 import logging
 import time
+import asyncio
 import sqlalchemy as sa
 from app.config import get_settings
 from app.database import engine, Base, SessionLocal
@@ -91,8 +92,55 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+def _wait_for_db_sync(max_attempts: int = 10, base_delay: float = 2.0):
+    """Retry DB operations until the database is ready (handles Postgres cold start)."""
+    import sqlalchemy.exc
+    last_err = None
+    for attempt in range(max_attempts):
+        try:
+            with engine.connect() as conn:
+                conn.execute(sa.text("SELECT 1"))
+            return
+        except (sqlalchemy.exc.OperationalError, Exception) as e:
+            last_err = e
+            if attempt < max_attempts - 1:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "Database not ready (attempt %d/%d): %s. Retrying in %.1fs...",
+                    attempt + 1, max_attempts, e, delay,
+                )
+                time.sleep(delay)
+    raise last_err
+
+
+async def _wait_for_db_async(max_attempts: int = 10, base_delay: float = 2.0):
+    """Retry async DB operations until the database is ready."""
+    import sqlalchemy.exc
+    last_err = None
+    for attempt in range(max_attempts):
+        try:
+            async with async_engine.connect() as conn:
+                await conn.execute(sa.text("SELECT 1"))
+            return
+        except (sqlalchemy.exc.OperationalError, Exception) as e:
+            last_err = e
+            if attempt < max_attempts - 1:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "Database not ready (attempt %d/%d): %s. Retrying in %.1fs...",
+                    attempt + 1, max_attempts, e, delay,
+                )
+                await asyncio.sleep(delay)
+    raise last_err
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Wait for database to be ready (Postgres may still be starting on Railway)
+    if "postgresql" in settings.database_url:
+        _wait_for_db_sync()
+        await _wait_for_db_async()
+
     # Enable WAL mode for SQLite — better concurrency (reads don't block writes)
     if "sqlite" in settings.database_url:
         with engine.connect() as conn:
