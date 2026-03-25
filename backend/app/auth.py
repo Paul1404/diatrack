@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Async engine for FastAPI-Users (asyncpg for Postgres, aiosqlite for SQLite)
-async_engine = create_async_engine(settings.async_database_url)
+async_engine = create_async_engine(settings.async_database_url, pool_pre_ping=True)
 async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
