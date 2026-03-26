@@ -16,8 +16,12 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Create separate engine for background tasks (same URL/connect_args as app database)
+# Serverless-tuned: small pool, aggressive recycle to handle Neon cold starts
 connect_args = {"check_same_thread": False} if "sqlite" in settings.database_url else {}
-engine = create_engine(settings.sync_database_url, connect_args=connect_args)
+_pool_kwargs: dict = {"pool_pre_ping": True}
+if "postgresql" in settings.database_url:
+    _pool_kwargs.update(pool_size=2, max_overflow=3, pool_recycle=300)
+engine = create_engine(settings.sync_database_url, connect_args=connect_args, **_pool_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 EMAIL_TEMPLATE = """
@@ -134,53 +138,77 @@ def send_device_reminder(device: Device, user: User, app_settings):
 
 
 def check_expiring_devices():
-    """Check for devices that need reminder notifications."""
-    db = SessionLocal()
-    try:
-        app_settings = get_app_settings(db)
-        
-        # Get all active devices
-        active_devices = (
-            db.query(Device)
-            .filter(Device.status == DeviceStatus.ACTIVE)
-            .all()
-        )
+    """Check for devices that need reminder notifications.
 
-        now = datetime.now(timezone.utc)
+    Retries up to 3 times with exponential backoff to handle serverless DB
+    cold-start delays (Neon may need a few seconds to wake up).
+    """
+    import time as _time
+    from sqlalchemy.exc import OperationalError, DisconnectionError
 
-        for device in active_devices:
-            user = db.query(User).filter(User.id == device.user_id).first()
-            if not user:
-                continue
+    max_attempts = 3
+    base_delay = 1.0
 
-            reminder_intervals = user.settings.get("reminder_intervals_hours", [24, 6])
-            start = device.start_time.replace(tzinfo=timezone.utc) if device.start_time.tzinfo is None else device.start_time
-            end_time = start + timedelta(hours=device.planned_duration_hours)
-            hours_remaining = (end_time - now).total_seconds() / 3600
+    for attempt in range(max_attempts):
+        db = SessionLocal()
+        try:
+            app_settings = get_app_settings(db)
 
-            # Check each reminder interval
-            for interval in reminder_intervals:
-                reminder_key = f"{interval}h"
+            # Get all active devices
+            active_devices = (
+                db.query(Device)
+                .filter(Device.status == DeviceStatus.ACTIVE)
+                .all()
+            )
 
-                # Skip if already sent
-                if reminder_key in device.reminders_sent:
+            now = datetime.now(timezone.utc)
+
+            for device in active_devices:
+                user = db.query(User).filter(User.id == device.user_id).first()
+                if not user:
                     continue
 
-                # Send if within the interval window (e.g., between 24h and 23.75h)
-                if interval - 0.25 <= hours_remaining <= interval + 0.25:
-                    send_device_reminder(device, user, app_settings)
+                reminder_intervals = user.settings.get("reminder_intervals_hours", [24, 6])
+                start = device.start_time.replace(tzinfo=timezone.utc) if device.start_time.tzinfo is None else device.start_time
+                end_time = start + timedelta(hours=device.planned_duration_hours)
+                hours_remaining = (end_time - now).total_seconds() / 3600
 
-                    # Mark reminder as sent
-                    if device.reminders_sent:
-                        device.reminders_sent += f",{reminder_key}"
-                    else:
-                        device.reminders_sent = reminder_key
-                    db.commit()
+                # Check each reminder interval
+                for interval in reminder_intervals:
+                    reminder_key = f"{interval}h"
 
-        logger.info("Checked %d active devices for reminders", len(active_devices))
+                    # Skip if already sent
+                    if reminder_key in device.reminders_sent:
+                        continue
 
-    except Exception as e:
-        logger.error("Error checking expiring devices: %s", e, exc_info=True)
-        db.rollback()
-    finally:
-        db.close()
+                    # Send if within the interval window (e.g., between 24h and 23.75h)
+                    if interval - 0.25 <= hours_remaining <= interval + 0.25:
+                        send_device_reminder(device, user, app_settings)
+
+                        # Mark reminder as sent
+                        if device.reminders_sent:
+                            device.reminders_sent += f",{reminder_key}"
+                        else:
+                            device.reminders_sent = reminder_key
+                        db.commit()
+
+            logger.info("Checked %d active devices for reminders", len(active_devices))
+            return  # Success — exit retry loop
+
+        except (OperationalError, DisconnectionError) as e:
+            db.rollback()
+            if attempt < max_attempts - 1:
+                delay = base_delay * (2 ** attempt)
+                logger.warning(
+                    "Transient DB error in scheduler (attempt %d/%d): %s — retrying in %.1fs",
+                    attempt + 1, max_attempts, e, delay,
+                )
+                _time.sleep(delay)
+            else:
+                logger.error("Scheduler DB error after %d attempts: %s", max_attempts, e, exc_info=True)
+        except Exception as e:
+            logger.error("Error checking expiring devices: %s", e, exc_info=True)
+            db.rollback()
+            return  # Non-transient error — don't retry
+        finally:
+            db.close()

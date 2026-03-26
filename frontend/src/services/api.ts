@@ -1,8 +1,21 @@
 const API_BASE = '/api';
 
+// Retry config for transient errors (serverless DB cold start, network blips)
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+}
+
+function isRetryable(status: number): boolean {
+  // 503 = DB cold start / service unavailable, 502/504 = proxy/gateway errors
+  return status === 502 || status === 503 || status === 504;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function apiRequest<T>(
@@ -14,31 +27,50 @@ async function apiRequest<T>(
     ...options.headers,
   };
 
-  try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers,
-      credentials: 'include', // Always send cookies
-    });
+  let lastError: string = 'Network error';
 
-    if (response.status === 401) {
-      return { error: 'Unauthorized' };
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+        credentials: 'include', // Always send cookies
+      });
+
+      if (response.status === 401) {
+        return { error: 'Unauthorized' };
+      }
+
+      // Retry on transient server errors (DB cold start)
+      if (isRetryable(response.status) && attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        await sleep(delay);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { error: errorData.detail || 'An error occurred' };
+      }
+
+      if (response.status === 204) {
+        return { data: undefined as T };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      // Network error (fetch failed entirely) — retry if we have attempts left
+      lastError = 'Network error';
+      if (attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        await sleep(delay);
+        continue;
+      }
     }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { error: errorData.detail || 'An error occurred' };
-    }
-
-    if (response.status === 204) {
-      return { data: undefined as T };
-    }
-
-    const data = await response.json();
-    return { data };
-  } catch (error) {
-    return { error: 'Network error' };
   }
+
+  return { error: lastError };
 }
 
 // Auth - FastAPI-Users uses form-urlencoded for login

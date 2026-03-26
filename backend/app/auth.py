@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Async engine for FastAPI-Users (asyncpg for Postgres, aiosqlite for SQLite)
-async_engine = create_async_engine(settings.async_database_url, pool_pre_ping=True)
+# Serverless-tuned: small pool, aggressive recycle to handle Neon cold starts
+_async_pool_kwargs: dict = {"pool_pre_ping": True}
+if "postgresql" in settings.database_url:
+    _async_pool_kwargs.update(pool_size=3, max_overflow=5, pool_recycle=300, pool_timeout=30)
+async_engine = create_async_engine(settings.async_database_url, **_async_pool_kwargs)
 async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
 
 

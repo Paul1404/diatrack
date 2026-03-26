@@ -194,6 +194,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global handler: surface transient DB errors as 503 (Service Unavailable) so the
+# frontend can detect cold-start failures and retry automatically.
+from sqlalchemy.exc import OperationalError as _SAOperationalError, DisconnectionError as _SADisconnectionError
+
+@app.exception_handler(_SAOperationalError)
+@app.exception_handler(_SADisconnectionError)
+async def _db_transient_error_handler(request: Request, exc: Exception):
+    logger.warning("Database unavailable for %s %s: %s", request.method, request.url.path, exc)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database temporarily unavailable — please retry in a moment."},
+        headers={"Retry-After": "2"},
+    )
+
 # Include routers
 app.include_router(auth_router)
 app.include_router(devices_router)
