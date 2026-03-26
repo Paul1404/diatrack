@@ -8,6 +8,9 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
+      day: "sunday"
+      time: "08:00"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -17,6 +20,18 @@ updates:
     directory: "/backend"
     schedule:
       interval: "weekly"
+      day: "sunday"
+      time: "08:00"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "08:00"
+      timezone: "Europe/Berlin"
