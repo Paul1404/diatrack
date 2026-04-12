@@ -1,0 +1,27 @@
+# Traefik reverse proxy override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d --build
+#
+# Requires:
+#   - A running Traefik instance on the "traefik" Docker network
+#   - Update the Host rule below with your domain
+#   - Set CORS_ORIGINS and COOKIE_SECURE in your .env:
+#       CORS_ORIGINS=https://your-domain.com
+#       COOKIE_SECURE=true
+
+services:
+  diatrack:
+    ports: []
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.diatrack.rule=Host(`diatrack.example.com`)"
+      - "traefik.http.routers.diatrack.entrypoints=websecure"
+      - "traefik.http.routers.diatrack.tls.certresolver=letsencrypt-http"
+      - "traefik.http.services.diatrack.loadbalancer.server.port=8000"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    name: traefik
+    external: true
