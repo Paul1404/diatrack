@@ -39,6 +39,16 @@
   box-sizing: border-box;
 }
 
+a, button, [role="button"], input, select, textarea {
+  touch-action: manipulation;
+}
+
+body.menu-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 body {
   background-color: var(--ds-background-neutral);
   color: var(--ds-text);
@@ -624,7 +634,8 @@ select,
 
   /* Atlaskit modal fullscreen on mobile */
   [class*="modal-dialog"] {
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
   }
 }

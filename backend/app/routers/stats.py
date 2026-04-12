@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, case
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from app.database import get_db
+from app.config import get_settings
 from app.models.user import User
 from app.models.device import Device, DeviceType, DeviceStatus, BODY_LOCATION_LABELS
 from app.models.failure_log import FailureLog, FailureReason, FAILURE_REASON_LABELS
@@ -18,6 +19,14 @@ from app.schemas.stats import (
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/stats", tags=["Statistics"])
+settings = get_settings()
+
+
+def _duration_hours_expr():
+    """SQL expression for device duration in hours, compatible with both SQLite and PostgreSQL."""
+    if "sqlite" in settings.database_url:
+        return (func.julianday(Device.ended_at) - func.julianday(Device.start_time)) * 24.0
+    return (func.extract('epoch', Device.ended_at) - func.extract('epoch', Device.start_time)) / 3600.0
 
 
 @router.get("/overview", response_model=OverviewStats)
@@ -26,50 +35,53 @@ def get_overview_stats(
     db: Session = Depends(get_db),
 ):
     """Get overview statistics for the dashboard."""
-    base_query = db.query(Device).filter(Device.user_id == current_user.id)
+    duration_expr = _duration_hours_expr()
 
-    total_devices = base_query.count()
-    active_devices = base_query.filter(Device.status == DeviceStatus.ACTIVE).count()
-    completed_devices = base_query.filter(Device.status == DeviceStatus.COMPLETED).count()
-    failed_devices = base_query.filter(Device.status == DeviceStatus.FAILED).count()
+    # Single aggregate query for all counts and averages (replaces 8+ separate queries)
+    counts = db.query(
+        func.count(Device.id).label("total"),
+        func.sum(case((Device.status == DeviceStatus.ACTIVE, 1), else_=0)).label("active"),
+        func.sum(case((Device.status == DeviceStatus.COMPLETED, 1), else_=0)).label("completed"),
+        func.sum(case((Device.status == DeviceStatus.FAILED, 1), else_=0)).label("failed"),
+        func.sum(case((and_(
+            Device.device_type == DeviceType.SENSOR,
+            Device.status != DeviceStatus.ACTIVE,
+        ), 1), else_=0)).label("sensor_total"),
+        func.sum(case((and_(
+            Device.device_type == DeviceType.SENSOR,
+            Device.status == DeviceStatus.FAILED,
+        ), 1), else_=0)).label("sensor_failed"),
+        func.sum(case((and_(
+            Device.device_type == DeviceType.CATHETER,
+            Device.status != DeviceStatus.ACTIVE,
+        ), 1), else_=0)).label("catheter_total"),
+        func.sum(case((and_(
+            Device.device_type == DeviceType.CATHETER,
+            Device.status == DeviceStatus.FAILED,
+        ), 1), else_=0)).label("catheter_failed"),
+        func.avg(case((and_(
+            Device.device_type == DeviceType.SENSOR,
+            Device.status != DeviceStatus.ACTIVE,
+            Device.ended_at.isnot(None),
+        ), duration_expr), else_=None)).label("avg_sensor_hours"),
+        func.avg(case((and_(
+            Device.device_type == DeviceType.CATHETER,
+            Device.status != DeviceStatus.ACTIVE,
+            Device.ended_at.isnot(None),
+        ), duration_expr), else_=None)).label("avg_catheter_hours"),
+    ).filter(Device.user_id == current_user.id).first()
 
-    # Calculate failure rates per device type
-    sensor_total = base_query.filter(
-        and_(Device.device_type == DeviceType.SENSOR, Device.status != DeviceStatus.ACTIVE)
-    ).count()
-    sensor_failed = base_query.filter(
-        and_(Device.device_type == DeviceType.SENSOR, Device.status == DeviceStatus.FAILED)
-    ).count()
+    total_devices = counts.total or 0
+    active_devices = counts.active or 0
+    completed_devices = counts.completed or 0
+    failed_devices = counts.failed or 0
+    sensor_total = counts.sensor_total or 0
+    sensor_failed = counts.sensor_failed or 0
+    catheter_total = counts.catheter_total or 0
+    catheter_failed = counts.catheter_failed or 0
+
     sensor_failure_rate = (sensor_failed / sensor_total * 100) if sensor_total > 0 else 0
-
-    catheter_total = base_query.filter(
-        and_(Device.device_type == DeviceType.CATHETER, Device.status != DeviceStatus.ACTIVE)
-    ).count()
-    catheter_failed = base_query.filter(
-        and_(Device.device_type == DeviceType.CATHETER, Device.status == DeviceStatus.FAILED)
-    ).count()
     catheter_failure_rate = (catheter_failed / catheter_total * 100) if catheter_total > 0 else 0
-
-    # Calculate average actual duration
-    def calc_avg_duration(device_type: DeviceType) -> Optional[float]:
-        devices = base_query.filter(
-            and_(
-                Device.device_type == device_type,
-                Device.status != DeviceStatus.ACTIVE,
-                Device.ended_at.isnot(None),
-            )
-        ).all()
-
-        if not devices:
-            return None
-
-        total_hours = 0
-        for d in devices:
-            start = d.start_time.replace(tzinfo=timezone.utc) if d.start_time.tzinfo is None else d.start_time
-            end = d.ended_at.replace(tzinfo=timezone.utc) if d.ended_at.tzinfo is None else d.ended_at
-            total_hours += (end - start).total_seconds() / 3600
-
-        return total_hours / len(devices)
 
     return OverviewStats(
         total_devices=total_devices,
@@ -78,8 +90,8 @@ def get_overview_stats(
         failed_devices=failed_devices,
         sensor_failure_rate=round(sensor_failure_rate, 1),
         catheter_failure_rate=round(catheter_failure_rate, 1),
-        avg_sensor_duration_hours=calc_avg_duration(DeviceType.SENSOR),
-        avg_catheter_duration_hours=calc_avg_duration(DeviceType.CATHETER),
+        avg_sensor_duration_hours=float(counts.avg_sensor_hours) if counts.avg_sensor_hours is not None else None,
+        avg_catheter_duration_hours=float(counts.avg_catheter_hours) if counts.avg_catheter_hours is not None else None,
     )
 
 
@@ -135,35 +147,29 @@ def get_failure_stats(
         for loc in location_stats
     ]
 
-    # MTBF by device type
+    # MTBF by device type (single aggregate query per type)
+    duration_expr = _duration_hours_expr()
     by_device_type = []
     for device_type in [DeviceType.SENSOR, DeviceType.CATHETER]:
-        devices = (
-            db.query(Device)
-            .filter(
-                and_(
-                    Device.user_id == current_user.id,
-                    Device.device_type == device_type,
-                    Device.status != DeviceStatus.ACTIVE,
-                    Device.ended_at.isnot(None),
-                )
+        result = db.query(
+            func.sum(case((Device.status == DeviceStatus.COMPLETED, 1), else_=0)).label("total_completed"),
+            func.sum(case((Device.status == DeviceStatus.FAILED, 1), else_=0)).label("total_failed"),
+            func.avg(case(
+                (Device.status == DeviceStatus.COMPLETED, duration_expr),
+                else_=None,
+            )).label("avg_completed_hours"),
+        ).filter(
+            and_(
+                Device.user_id == current_user.id,
+                Device.device_type == device_type,
+                Device.status != DeviceStatus.ACTIVE,
+                Device.ended_at.isnot(None),
             )
-            .all()
-        )
+        ).first()
 
-        total_completed = len([d for d in devices if d.status == DeviceStatus.COMPLETED])
-        total_failed = len([d for d in devices if d.status == DeviceStatus.FAILED])
-
-        # Calculate MTBF (only for devices that didn't fail)
-        mtbf_hours = None
-        completed_devices = [d for d in devices if d.status == DeviceStatus.COMPLETED]
-        if completed_devices:
-            total_hours = 0
-            for d in completed_devices:
-                start = d.start_time.replace(tzinfo=timezone.utc) if d.start_time.tzinfo is None else d.start_time
-                end = d.ended_at.replace(tzinfo=timezone.utc) if d.ended_at.tzinfo is None else d.ended_at
-                total_hours += (end - start).total_seconds() / 3600
-            mtbf_hours = round(total_hours / len(completed_devices), 1)
+        total_completed = result.total_completed or 0
+        total_failed = result.total_failed or 0
+        mtbf_hours = round(float(result.avg_completed_hours), 1) if result.avg_completed_hours else None
 
         by_device_type.append(
             MTBFStats(
@@ -201,7 +207,7 @@ def get_history(
     if device_type:
         query = query.filter(Device.device_type == device_type)
 
-    devices = query.order_by(Device.start_time.desc()).all()
+    devices = query.options(joinedload(Device.failure_log)).order_by(Device.start_time.desc()).all()
 
     result = []
     for d in devices:
