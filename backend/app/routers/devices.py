@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from datetime import datetime, timezone
 from typing import List
@@ -75,7 +75,7 @@ def list_devices(
     if device_type:
         query = query.filter(Device.device_type == device_type)
 
-    devices = query.order_by(Device.start_time.desc()).all()
+    devices = query.options(joinedload(Device.failure_log)).order_by(Device.start_time.desc()).all()
     return [device_to_response(d) for d in devices]
 
 

@@ -67,26 +67,31 @@ export default function Dashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteDeviceId, setDeleteDeviceId] = useState<number | null>(null);
 
-  const loadData = async () => {
-    const [devicesRes, locationsRes, reasonsRes, typesRes] = await Promise.all([
-      getDevices(true),
-      getBodyLocations(),
-      getFailureReasons(),
-      getDeviceTypes(),
-    ]);
+  // Load enums once on mount (these never change at runtime)
+  useEffect(() => {
+    async function loadEnums() {
+      const [locationsRes, reasonsRes, typesRes] = await Promise.all([
+        getBodyLocations(),
+        getFailureReasons(),
+        getDeviceTypes(),
+      ]);
+      if (locationsRes.data) setBodyLocations(locationsRes.data);
+      if (reasonsRes.data) setFailureReasons(reasonsRes.data);
+      if (typesRes.data) setDeviceTypes(typesRes.data);
+    }
+    loadEnums();
+  }, []);
 
+  // Load devices initially and refresh every 60s
+  const loadDevices = async () => {
+    const devicesRes = await getDevices(true);
     if (devicesRes.data) setDevices(devicesRes.data);
-    if (locationsRes.data) setBodyLocations(locationsRes.data);
-    if (reasonsRes.data) setFailureReasons(reasonsRes.data);
-    if (typesRes.data) setDeviceTypes(typesRes.data);
-
     setIsLoading(false);
   };
 
   useEffect(() => {
-    loadData();
-    // Refresh every minute to update progress
-    const interval = setInterval(loadData, 60000);
+    loadDevices();
+    const interval = setInterval(loadDevices, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -172,7 +177,7 @@ export default function Dashboard() {
       setShowEditModal(false);
       setEditDevice(null);
       setEditStartDate('');
-      await loadData();
+      await loadDevices();
     }
   };
 

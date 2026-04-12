@@ -266,7 +266,28 @@ def get_device_types():
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
     app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
-    
+
+    @app.get("/favicon.svg")
+    async def serve_favicon_svg():
+        path = os.path.join(static_dir, "favicon.svg")
+        if os.path.exists(path):
+            return FileResponse(path, media_type="image/svg+xml")
+        return Response(status_code=404)
+
+    @app.get("/favicon.ico")
+    async def serve_favicon_ico():
+        path = os.path.join(static_dir, "favicon.ico")
+        if os.path.exists(path):
+            return FileResponse(path, media_type="image/x-icon")
+        return Response(status_code=404)
+
+    @app.get("/apple-touch-icon.png")
+    async def serve_apple_touch_icon():
+        path = os.path.join(static_dir, "apple-touch-icon.png")
+        if os.path.exists(path):
+            return FileResponse(path, media_type="image/png")
+        return Response(status_code=404)
+
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         """Serve frontend for all non-API routes."""
