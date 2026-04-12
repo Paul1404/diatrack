@@ -2,31 +2,22 @@ services:
   diatrack:
     build: .
     container_name: diatrack
-    restart: always
-    labels:
-      - "io.portainer.accesscontrol.public"
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.routers.diatrack.rule=Host(`diatrack.pdcd.net`)"
-      - "traefik.http.routers.diatrack.entrypoints=websecure"
-      - "traefik.http.routers.diatrack.tls.certresolver=letsencrypt-http"
-      - "traefik.http.services.diatrack.loadbalancer.server.port=8000"
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
       - JWT_SECRET=${JWT_SECRET}
       - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://diatrack.pdcd.net}
-      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+    volumes:
+      - diatrack-data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
-    # No volume needed when using Neon Postgres (DATABASE_URL). For local SQLite, add: volumes: [data:/app/data]
-    networks:
-      - traefik
 
-networks:
-  traefik:
-    name: traefik
-    external: true
+volumes:
+  diatrack-data:
