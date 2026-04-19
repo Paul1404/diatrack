@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@atlaskit/button": "^19.0.0",
-    "@atlaskit/css-reset": "^6.11.0",
+    "@atlaskit/css-reset": "^7.4.5",
     "@atlaskit/dropdown-menu": "^12.20.0",
     "@atlaskit/dynamic-table": "^15.1.0",
     "@atlaskit/form": "^10.5.0",
