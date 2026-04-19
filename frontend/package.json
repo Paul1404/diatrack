@@ -15,7 +15,7 @@
     "@atlaskit/dynamic-table": "^15.1.0",
     "@atlaskit/form": "^10.5.0",
     "@atlaskit/icon": "^22.22.0",
-    "@atlaskit/lozenge": "^11.11.0",
+    "@atlaskit/lozenge": "^13.7.0",
     "@atlaskit/modal-dialog": "^12.17.0",
     "@atlaskit/progress-bar": "^2.3.0",
     "@atlaskit/select": "^18.1.0",
