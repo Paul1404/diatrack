@@ -21,6 +21,8 @@ import {
 } from '../services/api';
 import DeleteIcon from '@atlaskit/icon/core/delete';
 import { useAuth } from '../context/AuthContext';
+import EmailLogsPanel from '../components/EmailLogsPanel';
+import ThemePreferenceCard from '../components/ThemePreferenceCard';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -166,24 +168,13 @@ export default function Settings() {
     <div>
       <h1 style={{ marginBottom: '24px' }}>Einstellungen</h1>
 
+      <ThemePreferenceCard />
+
       <div className="card" style={{ maxWidth: '600px' }}>
         <h2>Standard-Laufzeiten</h2>
 
         {message && (
-          <div
-            className={message.type === 'error' ? 'error-message' : ''}
-            style={
-              message.type === 'success'
-                ? {
-                    background: '#E3FCEF',
-                    color: '#006644',
-                    padding: '12px',
-                    borderRadius: '4px',
-                    marginBottom: '16px',
-                  }
-                : {}
-            }
-          >
+          <div className={message.type === 'error' ? 'error-message' : 'success-message'}>
             {message.text}
           </div>
         )}
@@ -197,7 +188,7 @@ export default function Settings() {
             onChange={(e) => setSensorHours((e.target as HTMLInputElement).value)}
             placeholder="240"
           />
-          <small style={{ color: '#6B778C' }}>
+          <small style={{ color: 'var(--ds-text-subtle)' }}>
             Standard: 240 Stunden (10 Tage)
           </small>
         </div>
@@ -211,7 +202,7 @@ export default function Settings() {
             onChange={(e) => setCatheterHours((e.target as HTMLInputElement).value)}
             placeholder="72"
           />
-          <small style={{ color: '#6B778C' }}>
+          <small style={{ color: 'var(--ds-text-subtle)' }}>
             Standard: 72 Stunden (3 Tage)
           </small>
         </div>
@@ -230,7 +221,7 @@ export default function Settings() {
             }
             placeholder="24, 6"
           />
-          <small style={{ color: '#6B778C' }}>
+          <small style={{ color: 'var(--ds-text-subtle)' }}>
             Kommagetrennte Liste, z.B. "24, 6" für Erinnerungen 24h und 6h vor Ablauf
           </small>
         </div>
@@ -251,20 +242,7 @@ export default function Settings() {
           <h2>E-Mail-Einstellungen (SMTP)</h2>
           
           {smtpMessage && (
-            <div
-              className={smtpMessage.type === 'error' ? 'error-message' : ''}
-              style={
-                smtpMessage.type === 'success'
-                  ? {
-                      background: '#E3FCEF',
-                      color: '#006644',
-                      padding: '12px',
-                      borderRadius: '4px',
-                      marginBottom: '16px',
-                    }
-                  : {}
-              }
-            >
+            <div className={smtpMessage.type === 'error' ? 'error-message' : 'success-message'}>
               {smtpMessage.text}
             </div>
           )}
@@ -371,29 +349,18 @@ export default function Settings() {
         </div>
       )}
 
+      {user?.is_superuser && <EmailLogsPanel />}
+
       <div className="card" style={{ maxWidth: '600px', marginTop: '24px' }}>
         <h2>Daten verwalten</h2>
 
         {clearMessage && (
-          <div
-            className={clearMessage.type === 'error' ? 'error-message' : ''}
-            style={
-              clearMessage.type === 'success'
-                ? {
-                    background: '#E3FCEF',
-                    color: '#006644',
-                    padding: '12px',
-                    borderRadius: '4px',
-                    marginBottom: '16px',
-                  }
-                : {}
-            }
-          >
+          <div className={clearMessage.type === 'error' ? 'error-message' : 'success-message'}>
             {clearMessage.text}
           </div>
         )}
 
-        <p style={{ color: '#626F86', marginBottom: '16px' }}>
+        <p style={{ color: 'var(--ds-text-subtle)', marginBottom: '16px' }}>
           Hiermit werden alle abgeschlossenen und fehlerhaften Geräteeinträge gelöscht.
           Aktive Geräte bleiben erhalten. Dieser Vorgang kann nicht rückgängig gemacht werden.
         </p>
