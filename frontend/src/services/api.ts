@@ -137,6 +137,20 @@ export const testSmtp = (email: string) =>
     body: JSON.stringify({ email }),
   });
 
+export const getEmailLogs = (
+  params: { limit?: number; offset?: number; status?: string } = {}
+) => {
+  const qs = new URLSearchParams();
+  if (params.limit !== undefined) qs.set('limit', String(params.limit));
+  if (params.offset !== undefined) qs.set('offset', String(params.offset));
+  if (params.status) qs.set('status', params.status);
+  const suffix = qs.toString();
+  return apiRequest<EmailLogsResponse>(`/admin/email-logs${suffix ? `?${suffix}` : ''}`);
+};
+
+export const clearEmailLogs = () =>
+  apiRequest<void>('/admin/email-logs', { method: 'DELETE' });
+
 export const clearHistory = () =>
   apiRequest<void>('/devices', { method: 'DELETE' });
 
@@ -300,4 +314,24 @@ export interface AppSettingsUpdate {
   smtp_from?: string;
   smtp_tls?: boolean;
   app_url?: string;
+}
+
+export type EmailLogStatus = 'success' | 'failed' | 'skipped';
+
+export interface EmailLogEntry {
+  id: number;
+  to_email: string;
+  subject: string;
+  status: EmailLogStatus;
+  status_label: string;
+  email_type: string;
+  error_message: string | null;
+  duration_ms: number | null;
+  smtp_host: string | null;
+  created_at: string | null;
+}
+
+export interface EmailLogsResponse {
+  total: number;
+  entries: EmailLogEntry[];
 }

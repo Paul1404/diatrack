@@ -1,16 +1,18 @@
 import smtplib
 import ssl
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone, timedelta
 from jinja2 import Template
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 import logging
 from app.config import get_settings
 from app.models.user import User
 from app.models.device import Device, DeviceStatus, DeviceType, BODY_LOCATION_LABELS
 from app.models.app_settings import get_app_settings
+from app.models.email_log import EmailLog, EmailStatus
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -70,12 +72,75 @@ EMAIL_TEMPLATE = """
 """
 
 
-def send_email(to_email: str, subject: str, html_content: str, app_settings) -> bool:
-    """Send an email using SMTP settings from database."""
+def _record_email_log(
+    *,
+    to_email: str,
+    subject: str,
+    status: EmailStatus,
+    email_type: str,
+    error_message: str | None = None,
+    duration_ms: int | None = None,
+    smtp_host: str | None = None,
+    db: Session | None = None,
+) -> None:
+    """Persist an EmailLog row. Uses the provided session when available so the
+    caller can participate in an ongoing transaction; otherwise opens a short-lived
+    session. Logging failures must never propagate — email flow stays resilient.
+    """
+    owns_session = db is None
+    session = db or SessionLocal()
+    try:
+        entry = EmailLog(
+            to_email=to_email[:320],
+            subject=subject[:500],
+            status=status,
+            email_type=email_type,
+            error_message=(error_message[:4000] if error_message else None),
+            duration_ms=duration_ms,
+            smtp_host=(smtp_host[:255] if smtp_host else None),
+        )
+        session.add(entry)
+        session.commit()
+    except Exception as log_err:  # pragma: no cover — defensive
+        logger.warning("Failed to persist EmailLog for %s: %s", to_email, log_err)
+        try:
+            session.rollback()
+        except Exception:
+            pass
+    finally:
+        if owns_session:
+            session.close()
+
+
+def send_email(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    app_settings,
+    *,
+    email_type: str = "other",
+    db: Session | None = None,
+) -> bool:
+    """Send an email using SMTP settings from database.
+
+    Every call records an entry in the ``email_logs`` table regardless of outcome
+    (success / failure / skipped-because-not-configured) so operators can audit
+    delivery from the UI.
+    """
     if not app_settings.smtp_host or not app_settings.smtp_from:
         logger.debug("SMTP not configured, skipping email to %s", to_email)
+        _record_email_log(
+            to_email=to_email,
+            subject=subject,
+            status=EmailStatus.SKIPPED,
+            email_type=email_type,
+            error_message="SMTP not configured",
+            smtp_host=app_settings.smtp_host or None,
+            db=db,
+        )
         return False
 
+    start = time.monotonic()
     try:
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
@@ -98,14 +163,35 @@ def send_email(to_email: str, subject: str, html_content: str, app_settings) -> 
                     server.login(app_settings.smtp_user, app_settings.smtp_password)
                 server.sendmail(app_settings.smtp_from, to_email, message.as_string())
 
-        logger.info("Email sent to %s: %s", to_email, subject)
+        duration_ms = int((time.monotonic() - start) * 1000)
+        logger.info("Email sent to %s: %s (%dms)", to_email, subject, duration_ms)
+        _record_email_log(
+            to_email=to_email,
+            subject=subject,
+            status=EmailStatus.SUCCESS,
+            email_type=email_type,
+            duration_ms=duration_ms,
+            smtp_host=app_settings.smtp_host,
+            db=db,
+        )
         return True
     except Exception as e:
+        duration_ms = int((time.monotonic() - start) * 1000)
         logger.error("Failed to send email to %s: %s", to_email, e)
+        _record_email_log(
+            to_email=to_email,
+            subject=subject,
+            status=EmailStatus.FAILED,
+            email_type=email_type,
+            error_message=str(e),
+            duration_ms=duration_ms,
+            smtp_host=app_settings.smtp_host,
+            db=db,
+        )
         return False
 
 
-def send_device_reminder(device: Device, user: User, app_settings):
+def send_device_reminder(device: Device, user: User, app_settings, *, db: Session | None = None):
     """Send a reminder email for a specific device."""
     now = datetime.now(timezone.utc)
     start = device.start_time.replace(tzinfo=timezone.utc) if device.start_time.tzinfo is None else device.start_time
@@ -134,7 +220,14 @@ def send_device_reminder(device: Device, user: User, app_settings):
     )
 
     subject = f"DiaTrack: {device_type_label} läuft in ca. {round(hours_remaining)} Stunden ab"
-    send_email(user.email, subject, html_content, app_settings)
+    send_email(
+        user.email,
+        subject,
+        html_content,
+        app_settings,
+        email_type="device_reminder",
+        db=db,
+    )
 
 
 def check_expiring_devices():
@@ -183,7 +276,7 @@ def check_expiring_devices():
 
                     # Send if within the interval window (e.g., between 24h and 23.75h)
                     if interval - 0.25 <= hours_remaining <= interval + 0.25:
-                        send_device_reminder(device, user, app_settings)
+                        send_device_reminder(device, user, app_settings, db=db)
 
                         # Mark reminder as sent
                         if device.reminders_sent:

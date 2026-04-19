@@ -1,12 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import Button from '@atlaskit/button/standard-button';
+import Tooltip from '@atlaskit/tooltip';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import DashboardIcon from '@atlaskit/icon/core/dashboard';
 import ChartBarIcon from '@atlaskit/icon/core/chart-bar';
 import ClockIcon from '@atlaskit/icon/core/clock';
 import SettingsIcon from '@atlaskit/icon/core/settings';
 import LogOutIcon from '@atlaskit/icon/core/log-out';
+
+function ThemeToggleButton() {
+  const { mode, resolvedTheme, cycleMode } = useTheme();
+  const label =
+    mode === 'light'
+      ? 'Helles Design (Klick für Dunkel)'
+      : mode === 'dark'
+      ? 'Dunkles Design (Klick für Auto)'
+      : `Automatisch (${resolvedTheme === 'dark' ? 'dunkel' : 'hell'}) (Klick für Hell)`;
+
+  return (
+    <Tooltip content={label}>
+      <button
+        type="button"
+        onClick={cycleMode}
+        className="theme-toggle"
+        aria-label={label}
+        data-theme-mode={mode}
+      >
+        <span aria-hidden="true" className="theme-toggle-icon">
+          {mode === 'light' ? '☀' : mode === 'dark' ? '☾' : '◐'}
+        </span>
+      </button>
+    </Tooltip>
+  );
+}
+
+const MemoThemeToggle = memo(ThemeToggleButton);
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -84,6 +114,7 @@ export default function Layout({ children }: LayoutProps) {
             <SettingsIcon label="" /> Einstellungen
           </NavLink>
           <div className="nav-user">
+            <MemoThemeToggle />
             <span className="nav-email">{user?.email}</span>
             <Button appearance="subtle" iconBefore={<LogOutIcon label="" />} onClick={logout} style={{ color: 'white' }}>
               Abmelden

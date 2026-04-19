@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Lozenge from '@atlaskit/lozenge';
 import Select from '@atlaskit/select';
 import DynamicTable from '@atlaskit/dynamic-table';
@@ -34,7 +34,7 @@ export default function History() {
     ],
   };
 
-  const rows = history.map((entry) => ({
+  const rows = useMemo(() => history.map((entry) => ({
     key: String(entry.id),
     cells: [
       {
@@ -95,7 +95,7 @@ export default function History() {
         ),
       },
     ],
-  }));
+  })), [history]);
 
   const daysOptions = [
     { value: 30, label: 'Letzte 30 Tage' },

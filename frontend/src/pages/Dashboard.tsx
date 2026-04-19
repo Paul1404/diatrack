@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Button from '@atlaskit/button/standard-button';
 import Lozenge from '@atlaskit/lozenge';
 import ProgressBar from '@atlaskit/progress-bar';
@@ -37,6 +37,133 @@ import LocationIcon from '@atlaskit/icon/core/location';
 import Tooltip from '@atlaskit/tooltip';
 import DropdownMenu, { DropdownItem, DropdownItemGroup } from '@atlaskit/dropdown-menu';
 import ShowMoreHorizontalIcon from '@atlaskit/icon/core/show-more-horizontal';
+
+// Helpers hoisted out of the component so stable identities let memoized
+// children skip unnecessary re-renders.
+const formatRemaining = (hours: number | null): string => {
+  if (hours === null) return 'Aktiv';
+  if (hours < 1) {
+    const mins = Math.max(0, Math.round(hours * 60));
+    return `${mins}min übrig`;
+  }
+  if (hours < 24) {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}h ${m}min übrig` : `${h}h übrig`;
+  }
+  const days = Math.floor(hours / 24);
+  const h = Math.round(hours - days * 24);
+  return h > 0 ? `${days}d ${h}h übrig` : `${days}d übrig`;
+};
+
+const getProgressAppearance = (progress: number | null): 'default' | 'success' | 'inverse' => {
+  if (progress === null) return 'default';
+  if (progress >= 90) return 'inverse';
+  return 'success';
+};
+
+const getCardClass = (device: Device): string => {
+  const progress = device.progress_percent || 0;
+  let cls = `device-card ${device.device_type}`;
+  if (progress >= 90) cls += ' danger';
+  else if (progress >= 75) cls += ' warning';
+  return cls;
+};
+
+interface DeviceCardProps {
+  device: Device;
+  onEnd: (id: number) => void;
+  onFailure: (id: number) => void;
+  onEdit: (device: Device) => void;
+  onDelete: (id: number) => void;
+}
+
+const DeviceCard = memo(function DeviceCard({
+  device,
+  onEnd,
+  onFailure,
+  onEdit,
+  onDelete,
+}: DeviceCardProps) {
+  const progress = device.progress_percent || 0;
+  const lozengeAppearance =
+    progress >= 90 ? 'removed' : progress >= 75 ? 'moved' : 'success';
+  const startLabel = useMemo(
+    () => format(new Date(device.start_time), 'dd.MM.yyyy HH:mm', { locale: de }),
+    [device.start_time],
+  );
+
+  return (
+    <div className={getCardClass(device)}>
+      <div className="device-header">
+        <div>
+          <div className="device-type">
+            {device.device_type === 'sensor'
+              ? <><PulseIcon label="" /> Sensor</>
+              : <><FlaskIcon label="" /> Katheter</>}
+          </div>
+          <div className="device-location">
+            <LocationIcon label="" /> {device.body_location_label}
+          </div>
+        </div>
+        <Lozenge appearance={lozengeAppearance}>
+          {formatRemaining(device.remaining_hours)}
+        </Lozenge>
+      </div>
+
+      <div className="device-progress">
+        <ProgressBar
+          value={progress / 100}
+          appearance={getProgressAppearance(device.progress_percent)}
+        />
+        <div className="device-time">
+          <span>Gestartet: {startLabel}</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+      </div>
+
+      <div className="device-actions">
+        <Button
+          appearance="primary"
+          iconBefore={<CheckMarkIcon label="" />}
+          onClick={() => onEnd(device.id)}
+        >
+          Beenden
+        </Button>
+        <Button
+          appearance="danger"
+          iconBefore={<DefectIcon label="" />}
+          onClick={() => onFailure(device.id)}
+        >
+          Defekt
+        </Button>
+        <DropdownMenu
+          trigger={({ triggerRef, ...props }) => (
+            <Tooltip content="Weitere Aktionen">
+              <Button
+                {...props}
+                ref={triggerRef}
+                appearance="subtle"
+                spacing="compact"
+                iconBefore={<ShowMoreHorizontalIcon label="Weitere Aktionen" />}
+              />
+            </Tooltip>
+          )}
+          placement="bottom-end"
+        >
+          <DropdownItemGroup>
+            <DropdownItem onClick={() => onEdit(device)} elemBefore={<EditIcon label="" />}>
+              Startzeit bearbeiten
+            </DropdownItem>
+            <DropdownItem onClick={() => onDelete(device.id)} elemBefore={<DeleteIcon label="" />}>
+              Gerät löschen
+            </DropdownItem>
+          </DropdownItemGroup>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+});
 
 export default function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -83,19 +210,19 @@ export default function Dashboard() {
   }, []);
 
   // Load devices initially and refresh every 60s
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     const devicesRes = await getDevices(true);
     if (devicesRes.data) setDevices(devicesRes.data);
     setIsLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadDevices();
     const interval = setInterval(loadDevices, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadDevices]);
 
-  const handleCreateDevice = async () => {
+  const handleCreateDevice = useCallback(async () => {
     if (!newDeviceType || !newBodyLocation) return;
 
     const { data } = await createDevice({
@@ -105,22 +232,22 @@ export default function Dashboard() {
     });
 
     if (data) {
-      setDevices([data, ...devices]);
+      setDevices((prev) => [data, ...prev]);
       setShowNewModal(false);
       setNewDeviceType(null);
       setNewBodyLocation(null);
       setNewStartDate('');
     }
-  };
+  }, [newDeviceType, newBodyLocation, newStartDate]);
 
-  const handleEndDevice = async (id: number) => {
+  const handleEndDevice = useCallback(async (id: number) => {
     const { data } = await endDevice(id);
     if (data) {
-      setDevices(devices.filter((d) => d.id !== id));
+      setDevices((prev) => prev.filter((d) => d.id !== id));
     }
-  };
+  }, []);
 
-  const handleReportFailure = async () => {
+  const handleReportFailure = useCallback(async () => {
     if (!failureDeviceId || !failureReason) return;
 
     const { data } = await reportFailure(
@@ -131,31 +258,31 @@ export default function Dashboard() {
     );
 
     if (data) {
-      setDevices(devices.filter((d) => d.id !== failureDeviceId));
+      setDevices((prev) => prev.filter((d) => d.id !== failureDeviceId));
       setShowFailureModal(false);
       setFailureDeviceId(null);
       setFailureReason(null);
       setFailureNotes('');
       setFailureDate('');
     }
-  };
+  }, [failureDeviceId, failureReason, failureNotes, failureDate]);
 
-  const confirmDeleteDevice = (id: number) => {
+  const confirmDeleteDevice = useCallback((id: number) => {
     setDeleteDeviceId(id);
     setShowDeleteModal(true);
-  };
+  }, []);
 
-  const handleDeleteDevice = async () => {
+  const handleDeleteDevice = useCallback(async () => {
     if (!deleteDeviceId) return;
     const { error } = await deleteDevice(deleteDeviceId);
     if (!error) {
-      setDevices(devices.filter((d) => d.id !== deleteDeviceId));
+      setDevices((prev) => prev.filter((d) => d.id !== deleteDeviceId));
     }
     setShowDeleteModal(false);
     setDeleteDeviceId(null);
-  };
+  }, [deleteDeviceId]);
 
-  const openEditModal = (device: Device) => {
+  const openEditModal = useCallback((device: Device) => {
     setEditDevice(device);
     // Convert UTC ISO to local datetime-local value
     const dt = new Date(device.start_time);
@@ -166,9 +293,9 @@ export default function Dashboard() {
     const minutes = String(dt.getMinutes()).padStart(2, '0');
     setEditStartDate(`${year}-${month}-${day}T${hours}:${minutes}`);
     setShowEditModal(true);
-  };
+  }, []);
 
-  const handleUpdateDevice = async () => {
+  const handleUpdateDevice = useCallback(async () => {
     if (!editDevice || !editStartDate) return;
     const { data } = await updateDevice(editDevice.id, {
       start_time: new Date(editStartDate).toISOString(),
@@ -179,42 +306,25 @@ export default function Dashboard() {
       setEditStartDate('');
       await loadDevices();
     }
-  };
+  }, [editDevice, editStartDate, loadDevices]);
 
-  const openFailureModal = (deviceId: number) => {
+  const openFailureModal = useCallback((deviceId: number) => {
     setFailureDeviceId(deviceId);
     setShowFailureModal(true);
-  };
+  }, []);
 
-  const formatRemaining = (hours: number | null): string => {
-    if (hours === null) return 'Aktiv';
-    if (hours < 1) {
-      const mins = Math.max(0, Math.round(hours * 60));
-      return `${mins}min übrig`;
-    }
-    if (hours < 24) {
-      const h = Math.floor(hours);
-      const m = Math.round((hours - h) * 60);
-      return m > 0 ? `${h}h ${m}min übrig` : `${h}h übrig`;
-    }
-    const days = Math.floor(hours / 24);
-    const h = Math.round(hours - days * 24);
-    return h > 0 ? `${days}d ${h}h übrig` : `${days}d übrig`;
-  };
-
-  const getProgressAppearance = (progress: number | null): 'default' | 'success' | 'inverse' => {
-    if (progress === null) return 'default';
-    if (progress >= 90) return 'inverse';
-    return 'success';
-  };
-
-  const getCardClass = (device: Device): string => {
-    const progress = device.progress_percent || 0;
-    let cls = `device-card ${device.device_type}`;
-    if (progress >= 90) cls += ' danger';
-    else if (progress >= 75) cls += ' warning';
-    return cls;
-  };
+  const deviceTypeOptions = useMemo(
+    () => deviceTypes.map((t) => ({ value: t.value, label: t.label })),
+    [deviceTypes],
+  );
+  const bodyLocationOptions = useMemo(
+    () => bodyLocations.map((l) => ({ value: l.value, label: l.label })),
+    [bodyLocations],
+  );
+  const failureReasonOptions = useMemo(
+    () => failureReasons.map((r) => ({ value: r.value, label: r.label })),
+    [failureReasons],
+  );
 
   if (isLoading) {
     return <div>Laden...</div>;
@@ -240,91 +350,14 @@ export default function Dashboard() {
       ) : (
         <div className="device-grid">
           {devices.map((device) => (
-            <div key={device.id} className={getCardClass(device)}>
-              <div className="device-header">
-                <div>
-                  <div className="device-type">
-                    {device.device_type === 'sensor'
-                      ? <><PulseIcon label="" /> Sensor</>
-                      : <><FlaskIcon label="" /> Katheter</>}
-                  </div>
-                  <div className="device-location"><LocationIcon label="" /> {device.body_location_label}</div>
-                </div>
-                <Lozenge
-                  appearance={
-                    (device.progress_percent || 0) >= 90
-                      ? 'removed'
-                      : (device.progress_percent || 0) >= 75
-                      ? 'moved'
-                      : 'success'
-                  }
-                >
-                  {formatRemaining(device.remaining_hours)}
-                </Lozenge>
-              </div>
-
-              <div className="device-progress">
-                <ProgressBar
-                  value={(device.progress_percent || 0) / 100}
-                  appearance={getProgressAppearance(device.progress_percent)}
-                />
-                <div className="device-time">
-                  <span>
-                    Gestartet:{' '}
-                    {format(new Date(device.start_time), 'dd.MM.yyyy HH:mm', {
-                      locale: de,
-                    })}
-                  </span>
-                  <span>{Math.round(device.progress_percent || 0)}%</span>
-                </div>
-              </div>
-
-              <div className="device-actions">
-                <Button
-                  appearance="primary"
-                  iconBefore={<CheckMarkIcon label="" />}
-                  onClick={() => handleEndDevice(device.id)}
-                >
-                  Beenden
-                </Button>
-                <Button
-                  appearance="danger"
-                  iconBefore={<DefectIcon label="" />}
-                  onClick={() => openFailureModal(device.id)}
-                >
-                  Defekt
-                </Button>
-                <DropdownMenu
-                  trigger={({ triggerRef, ...props }) => (
-                    <Tooltip content="Weitere Aktionen">
-                      <Button
-                        {...props}
-                        ref={triggerRef}
-                        appearance="subtle"
-                        spacing="compact"
-                        iconBefore={<ShowMoreHorizontalIcon label="Weitere Aktionen" />}
-                      />
-                    </Tooltip>
-                  )}
-                  placement="bottom-end"
-                >
-                  <DropdownItemGroup>
-                    <DropdownItem
-                      onClick={() => openEditModal(device)}
-                      elemBefore={<EditIcon label="" />}
-                    >
-                      Startzeit bearbeiten
-                    </DropdownItem>
-                    <DropdownItem
-                      onClick={() => confirmDeleteDevice(device.id)}
-                      elemBefore={<DeleteIcon label="" />}
-                    >
-                      Gerät löschen
-                    </DropdownItem>
-                  </DropdownItemGroup>
-                </DropdownMenu>
-              </div>
-            </div>
+            <DeviceCard
+              key={device.id}
+              device={device}
+              onEnd={handleEndDevice}
+              onFailure={openFailureModal}
+              onEdit={openEditModal}
+              onDelete={confirmDeleteDevice}
+            />
           ))}
         </div>
       )}
@@ -340,7 +373,7 @@ export default function Dashboard() {
               <div className="form-field">
                 <label>Gerätetyp</label>
                 <Select
-                  options={deviceTypes.map((t) => ({ value: t.value, label: t.label }))}
+                  options={deviceTypeOptions}
                   onChange={(option) => setNewDeviceType(option?.value || null)}
                   placeholder="Typ auswählen..."
                 />
@@ -348,7 +381,7 @@ export default function Dashboard() {
               <div className="form-field">
                 <label>Körperstelle</label>
                 <Select
-                  options={bodyLocations.map((l) => ({ value: l.value, label: l.label }))}
+                  options={bodyLocationOptions}
                   onChange={(option) => setNewBodyLocation(option?.value || null)}
                   placeholder="Stelle auswählen..."
                 />
@@ -444,7 +477,7 @@ export default function Dashboard() {
               <div className="form-field">
                 <label>Grund</label>
                 <Select
-                  options={failureReasons.map((r) => ({ value: r.value, label: r.label }))}
+                  options={failureReasonOptions}
                   onChange={(option) => setFailureReason(option?.value || null)}
                   placeholder="Grund auswählen..."
                 />

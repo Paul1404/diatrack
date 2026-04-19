@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   OverviewStats,
   FailureStats,
@@ -40,6 +40,37 @@ export default function Statistics() {
     loadData();
   }, []);
 
+  const mtbfData = useMemo(
+    () =>
+      (failures?.by_device_type || []).map((dt) => ({
+        name: dt.device_type === 'sensor' ? 'Sensor' : 'Katheter',
+        mtbf: dt.mtbf_hours || 0,
+        failures: dt.total_failures,
+        completed: dt.total_completed,
+      })),
+    [failures],
+  );
+
+  const locationData = useMemo(
+    () =>
+      (failures?.by_location || []).map((loc) => ({
+        name: loc.body_location_label,
+        total: loc.total_devices,
+        failed: loc.failed_devices,
+        rate: loc.failure_rate,
+      })),
+    [failures],
+  );
+
+  const reasonData = useMemo(
+    () =>
+      (failures?.by_reason || []).map((r) => ({
+        name: r.reason_label,
+        value: r.count,
+      })),
+    [failures],
+  );
+
   if (isLoading) {
     return <div>Laden...</div>;
   }
@@ -47,25 +78,6 @@ export default function Statistics() {
   if (!overview || !failures) {
     return <div>Fehler beim Laden der Statistiken</div>;
   }
-
-  const mtbfData = failures.by_device_type.map((dt) => ({
-    name: dt.device_type === 'sensor' ? 'Sensor' : 'Katheter',
-    mtbf: dt.mtbf_hours || 0,
-    failures: dt.total_failures,
-    completed: dt.total_completed,
-  }));
-
-  const locationData = failures.by_location.map((loc) => ({
-    name: loc.body_location_label,
-    total: loc.total_devices,
-    failed: loc.failed_devices,
-    rate: loc.failure_rate,
-  }));
-
-  const reasonData = failures.by_reason.map((r) => ({
-    name: r.reason_label,
-    value: r.count,
-  }));
 
   return (
     <div>

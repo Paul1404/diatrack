@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from app.config import get_settings
 from app.database import engine, Base, SessionLocal
 from app.routers import auth_router, devices_router, stats_router, admin_router
-from app.models import User, Device, FailureLog, AppSettings  # Import models to register them
+from app.models import User, Device, FailureLog, AppSettings, EmailLog  # Import models to register them
 from app.tasks import start_scheduler, stop_scheduler
 from app.auth import async_engine
 

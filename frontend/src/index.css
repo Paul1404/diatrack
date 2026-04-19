@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   /* Atlassian Design System Colors */
   --ds-surface: #FFFFFF;
   --ds-surface-raised: #FFFFFF;
@@ -28,11 +29,93 @@
   --ds-border: #DFE1E6;
   --ds-border-focused: #388BFF;
   --ds-border-bold: #758195;
-  
+
   /* Shadows */
   --ds-shadow-raised: 0px 1px 1px rgba(9, 30, 66, 0.25), 0px 0px 1px rgba(9, 30, 66, 0.31);
   --ds-shadow-overlay: 0px 8px 12px rgba(9, 30, 66, 0.15), 0px 0px 1px rgba(9, 30, 66, 0.31);
   --ds-shadow-overflow: 0px 0px 8px rgba(9, 30, 66, 0.08), 0px 0px 1px rgba(9, 30, 66, 0.25);
+}
+
+/* Dark theme — applied when <html data-theme="dark"> */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ds-surface: #1D2125;
+  --ds-surface-raised: #22272B;
+  --ds-surface-sunken: #161A1D;
+  --ds-background-neutral: #161A1D;
+  --ds-background-neutral-subtle: #1D2125;
+  --ds-background-brand-bold: #1D7AFC;
+  --ds-background-brand-bold-hovered: #388BFF;
+  --ds-background-selected: #1C2B41;
+  --ds-background-selected-bold: #1D7AFC;
+  --ds-background-success: #1C3329;
+  --ds-background-success-bold: #2ABB7F;
+  --ds-background-danger: #42221F;
+  --ds-background-danger-bold: #E2483D;
+  --ds-background-warning: #3D2E00;
+  --ds-background-warning-bold: #E2B203;
+  --ds-text: #E6EDF3;
+  --ds-text-subtle: #9FADBC;
+  --ds-text-subtlest: #738496;
+  --ds-text-inverse: #FFFFFF;
+  --ds-text-brand: #85B8FF;
+  --ds-text-success: #7EE2B8;
+  --ds-text-danger: #FD9891;
+  --ds-text-warning: #F5CD47;
+  --ds-link: #85B8FF;
+  --ds-link-pressed: #579DFF;
+  --ds-border: #2C333A;
+  --ds-border-focused: #85B8FF;
+  --ds-border-bold: #596773;
+
+  --ds-shadow-raised: 0px 1px 1px rgba(0, 0, 0, 0.55), 0px 0px 1px rgba(0, 0, 0, 0.55);
+  --ds-shadow-overlay: 0px 8px 12px rgba(0, 0, 0, 0.55), 0px 0px 1px rgba(0, 0, 0, 0.55);
+  --ds-shadow-overflow: 0px 0px 8px rgba(0, 0, 0, 0.45), 0px 0px 1px rgba(0, 0, 0, 0.55);
+}
+
+/* Fallback: respect OS dark-mode preference when no explicit theme attr is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --ds-surface: #1D2125;
+    --ds-surface-raised: #22272B;
+    --ds-surface-sunken: #161A1D;
+    --ds-background-neutral: #161A1D;
+    --ds-background-neutral-subtle: #1D2125;
+    --ds-background-brand-bold: #1D7AFC;
+    --ds-background-brand-bold-hovered: #388BFF;
+    --ds-background-selected: #1C2B41;
+    --ds-background-selected-bold: #1D7AFC;
+    --ds-background-success: #1C3329;
+    --ds-background-success-bold: #2ABB7F;
+    --ds-background-danger: #42221F;
+    --ds-background-danger-bold: #E2483D;
+    --ds-background-warning: #3D2E00;
+    --ds-background-warning-bold: #E2B203;
+    --ds-text: #E6EDF3;
+    --ds-text-subtle: #9FADBC;
+    --ds-text-subtlest: #738496;
+    --ds-text-brand: #85B8FF;
+    --ds-text-success: #7EE2B8;
+    --ds-text-danger: #FD9891;
+    --ds-text-warning: #F5CD47;
+    --ds-link: #85B8FF;
+    --ds-link-pressed: #579DFF;
+    --ds-border: #2C333A;
+    --ds-border-focused: #85B8FF;
+    --ds-border-bold: #596773;
+
+    --ds-shadow-raised: 0px 1px 1px rgba(0, 0, 0, 0.55), 0px 0px 1px rgba(0, 0, 0, 0.55);
+    --ds-shadow-overlay: 0px 8px 12px rgba(0, 0, 0, 0.55), 0px 0px 1px rgba(0, 0, 0, 0.55);
+    --ds-shadow-overflow: 0px 0px 8px rgba(0, 0, 0, 0.45), 0px 0px 1px rgba(0, 0, 0, 0.55);
+  }
+}
+
+html,
+body {
+  background-color: var(--ds-background-neutral);
+  color: var(--ds-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 * {
@@ -432,6 +515,37 @@ select,
   opacity: 0.7;
   font-size: 13px;
   color: var(--ds-text-inverse);
+}
+
+.theme-toggle {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--ds-text-inverse);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--ds-border-focused);
+  outline-offset: 2px;
+}
+
+.theme-toggle-icon {
+  display: inline-block;
+  line-height: 1;
 }
 
 /* ==============================
