@@ -10,7 +10,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build final image
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
