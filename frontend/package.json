@@ -21,7 +21,7 @@
     "@atlaskit/select": "^18.1.0",
     "@atlaskit/textfield": "^6.5.0",
     "@atlaskit/toggle": "^13.4.0",
-    "@atlaskit/tokens": "^2.0.0",
+    "@atlaskit/tokens": "^13.0.3",
     "@atlaskit/tooltip": "^21.1.6",
     "@emotion/react": "^11.13.0",
     "react": "^18.3.1",
