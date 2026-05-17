@@ -168,7 +168,7 @@ export default function Statistics() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) =>
-                      `${name} (${(percent * 100).toFixed(0)}%)`
+                      `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
                     }
                     outerRadius={80}
                     dataKey="value"
@@ -201,7 +201,7 @@ export default function Statistics() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" unit="%" />
                   <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip formatter={(value: number) => `${value}%`} />
+                  <Tooltip formatter={(value) => `${value}%`} />
                   <Bar dataKey="rate" fill="#0052CC" name="Ausfallrate" />
                 </BarChart>
               </ResponsiveContainer>
