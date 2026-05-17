@@ -8,6 +8,6 @@ fastapi-users[sqlalchemy]==15.0.4
 python-multipart==0.0.28
 pydantic[email]==2.9.2
 pydantic-settings==2.14.1
-apscheduler==3.10.4
+apscheduler==3.11.2
 aiosmtplib==5.1.0
 jinja2==3.1.6
