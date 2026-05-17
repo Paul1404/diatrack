@@ -16,10 +16,23 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-charts': ['recharts'],
-          'vendor-date': ['date-fns'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/react-router-dom/') ||
+              id.includes('/react-router/')
+            ) {
+              return 'vendor-react'
+            }
+            if (id.includes('/recharts/')) {
+              return 'vendor-charts'
+            }
+            if (id.includes('/date-fns/')) {
+              return 'vendor-date'
+            }
+          }
         },
       },
     },
