@@ -12,9 +12,9 @@
     "@atlaskit/button": "^19.0.0",
     "@atlaskit/css-reset": "^7.4.5",
     "@atlaskit/dropdown-menu": "^12.20.0",
-    "@atlaskit/dynamic-table": "^15.1.0",
+    "@atlaskit/dynamic-table": "^18.4.2",
     "@atlaskit/form": "^10.5.0",
-    "@atlaskit/icon": "^34.2.0",
+    "@atlaskit/icon": "^35.0.0",
     "@atlaskit/lozenge": "^13.8.1",
     "@atlaskit/modal-dialog": "^12.17.0",
     "@atlaskit/progress-bar": "^4.2.0",
@@ -24,11 +24,11 @@
     "@atlaskit/tokens": "^13.0.3",
     "@atlaskit/tooltip": "^22.2.0",
     "@emotion/react": "^11.13.0",
+    "date-fns": "^4.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.15.0",
-    "recharts": "^3.8.1",
-    "date-fns": "^4.1.0"
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
