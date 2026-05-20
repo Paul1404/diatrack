@@ -14,6 +14,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // Explicit target so mobile Safari (iOS 14+) and equivalent Android
+    // browsers don't choke on syntax newer Vite defaults may emit.
+    target: ['es2020', 'safari14', 'chrome87', 'edge88', 'firefox78'],
+    cssTarget: ['safari14', 'chrome87'],
     rollupOptions: {
       output: {
         manualChunks(id) {
