@@ -16,28 +16,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = async () => {
-    await apiLogout();
+    try {
+      await apiLogout();
+    } catch (err) {
+      console.error('[AuthContext] logout failed', err);
+    }
     setUser(null);
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     async function checkAuth() {
-      const { data } = await getMe();
-      if (data) {
-        setUser(data);
+      try {
+        const { data } = await getMe();
+        if (cancelled) return;
+        if (data) setUser(data);
+      } catch (err) {
+        console.error('[AuthContext] getMe threw unexpectedly', err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      setIsLoading(false);
     }
+
     checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      setUser, 
-      logout, 
-      isLoading, 
-      isAuthenticated: !!user 
+    <AuthContext.Provider value={{
+      user,
+      setUser,
+      logout,
+      isLoading,
+      isAuthenticated: !!user
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,13 +1,15 @@
-# Stage 1: Build frontend
-FROM node:26-alpine AS frontend-builder
+# Stage 1: Build frontend with Bun (much faster than npm)
+FROM oven/bun:1-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-COPY frontend/package*.json ./
-RUN npm install --legacy-peer-deps
+# Install deps first (cached layer when only source changes).
+# --frozen-lockfile means the build fails fast if bun.lock is stale.
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY frontend/ ./
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Build final image
 FROM python:3.13-slim

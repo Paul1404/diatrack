@@ -86,10 +86,12 @@ uvicorn app.main:app --reload --port 8000
 
 **Frontend:**
 
+Install [Bun](https://bun.sh/) first (`curl -fsSL https://bun.sh/install | bash`), then:
+
 ```bash
 cd frontend
-npm install --legacy-peer-deps
-npm run dev
+bun install
+bun run dev
 ```
 
 The Vite dev server proxies `/api` requests to the backend at `localhost:8000`.
