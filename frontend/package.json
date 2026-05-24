@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@atlaskit/button": "^19.0.0",
+    "@atlaskit/button": "^23.11.7",
     "@atlaskit/css-reset": "^7.4.5",
-    "@atlaskit/dropdown-menu": "^12.20.0",
+    "@atlaskit/dropdown-menu": "^16.9.2",
     "@atlaskit/dynamic-table": "^18.4.2",
     "@atlaskit/form": "^15.5.6",
     "@atlaskit/icon": "^35.0.0",
