@@ -13,7 +13,7 @@
     "@atlaskit/css-reset": "^7.4.5",
     "@atlaskit/dropdown-menu": "^12.20.0",
     "@atlaskit/dynamic-table": "^18.4.2",
-    "@atlaskit/form": "^10.5.0",
+    "@atlaskit/form": "^15.5.6",
     "@atlaskit/icon": "^35.0.0",
     "@atlaskit/lozenge": "^13.8.1",
     "@atlaskit/modal-dialog": "^12.17.0",
