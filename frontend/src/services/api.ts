@@ -9,6 +9,16 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+// When an authenticated request comes back 401 the session has expired.
+// AuthContext registers a handler here so it can clear the user and bounce
+// them to the login screen instead of leaving a half-broken, empty UI.
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
+}
+
 function isRetryable(status: number): boolean {
   // 503 = DB cold start / service unavailable, 502/504 = proxy/gateway errors
   return status === 502 || status === 503 || status === 504;
@@ -38,6 +48,7 @@ async function apiRequest<T>(
       });
 
       if (response.status === 401) {
+        if (unauthorizedHandler) unauthorizedHandler();
         return { error: 'Unauthorized' };
       }
 

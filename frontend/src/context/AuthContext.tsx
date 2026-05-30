@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, getMe, logout as apiLogout } from '../services/api';
+import { User, getMe, logout as apiLogout, setUnauthorizedHandler } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
   };
+
+  // Clear the session whenever any authenticated request returns 401, so an
+  // expired cookie sends the user back to login instead of an empty screen.
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null));
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

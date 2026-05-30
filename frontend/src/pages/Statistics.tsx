@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Button from '@atlaskit/button/standard-button';
 import {
   OverviewStats,
   FailureStats,
@@ -25,20 +26,28 @@ export default function Statistics() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [failures, setFailures] = useState<FailureStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    const [overviewRes, failuresRes] = await Promise.all([
+      getOverviewStats(),
+      getFailureStats(),
+    ]);
+
+    if (overviewRes.data && failuresRes.data) {
+      setOverview(overviewRes.data);
+      setFailures(failuresRes.data);
+    } else {
+      setLoadError(true);
+    }
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
-    async function loadData() {
-      const [overviewRes, failuresRes] = await Promise.all([
-        getOverviewStats(),
-        getFailureStats(),
-      ]);
-
-      if (overviewRes.data) setOverview(overviewRes.data);
-      if (failuresRes.data) setFailures(failuresRes.data);
-      setIsLoading(false);
-    }
     loadData();
-  }, []);
+  }, [loadData]);
 
   const mtbfData = useMemo(
     () =>
@@ -75,8 +84,19 @@ export default function Statistics() {
     return <div>Laden...</div>;
   }
 
-  if (!overview || !failures) {
-    return <div>Fehler beim Laden der Statistiken</div>;
+  if (loadError || !overview || !failures) {
+    return (
+      <div>
+        <h1 style={{ marginBottom: '24px' }}>Statistiken</h1>
+        <div className="card load-error">
+          <h3>Statistiken konnten nicht geladen werden</h3>
+          <p>Bitte prüfe deine Verbindung und versuche es erneut.</p>
+          <Button appearance="primary" onClick={loadData}>
+            Erneut versuchen
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

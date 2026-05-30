@@ -171,6 +171,7 @@ export default function Dashboard() {
   const [failureReasons, setFailureReasons] = useState<EnumOption[]>([]);
   const [deviceTypes, setDeviceTypes] = useState<EnumOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // New Device Modal
   const [showNewModal, setShowNewModal] = useState(false);
@@ -212,9 +213,22 @@ export default function Dashboard() {
   // Load devices initially and refresh every 60s
   const loadDevices = useCallback(async () => {
     const devicesRes = await getDevices(true);
-    if (devicesRes.data) setDevices(devicesRes.data);
+    if (devicesRes.data) {
+      setDevices(devicesRes.data);
+      setLoadError(null);
+    } else if (devicesRes.error && devicesRes.error !== 'Unauthorized') {
+      // Keep any devices already on screen; only surface the error when we
+      // have nothing to show, so a failed background refresh stays quiet.
+      setLoadError(devicesRes.error);
+    }
     setIsLoading(false);
   }, []);
+
+  const handleRetry = useCallback(() => {
+    setIsLoading(true);
+    setLoadError(null);
+    loadDevices();
+  }, [loadDevices]);
 
   useEffect(() => {
     loadDevices();
@@ -339,7 +353,15 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {devices.length === 0 ? (
+      {loadError && devices.length === 0 ? (
+        <div className="card load-error">
+          <h3>Geräte konnten nicht geladen werden</h3>
+          <p>Bitte prüfe deine Verbindung und versuche es erneut.</p>
+          <Button appearance="primary" onClick={handleRetry}>
+            Erneut versuchen
+          </Button>
+        </div>
+      ) : devices.length === 0 ? (
         <div className="card empty-state">
           <h3>Keine aktiven Geräte</h3>
           <p>Füge ein neues Gerät hinzu, um mit dem Tracking zu beginnen.</p>
@@ -390,17 +412,9 @@ export default function Dashboard() {
                 <label>Startzeit (optional, Standard: jetzt)</label>
                 <input
                   type="datetime-local"
+                  className="date-input"
                   value={newStartDate}
                   onChange={(e) => setNewStartDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 6px',
-                    border: '2px solid #DFE1E6',
-                    borderRadius: '3px',
-                    fontSize: '16px',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
             </ModalBody>
@@ -436,17 +450,9 @@ export default function Dashboard() {
                 <label>Startzeit</label>
                 <input
                   type="datetime-local"
+                  className="date-input"
                   value={editStartDate}
                   onChange={(e) => setEditStartDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 6px',
-                    border: '2px solid #DFE1E6',
-                    borderRadius: '3px',
-                    fontSize: '16px',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                  }}
                 />
               </div>
             </ModalBody>

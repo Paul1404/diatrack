@@ -1,9 +1,10 @@
-import { useState, useEffect, memo } from 'react';
+import { memo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import Button from '@atlaskit/button/standard-button';
 import Tooltip from '@atlaskit/tooltip';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import BottomNav from './BottomNav';
 import DashboardIcon from '@atlaskit/icon/core/dashboard';
 import ChartBarIcon from '@atlaskit/icon/core/chart-bar';
 import ClockIcon from '@atlaskit/icon/core/clock';
@@ -45,53 +46,21 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  // Lock body scroll when mobile menu is open
-  useEffect(() => {
-    if (menuOpen) {
-      document.body.classList.add('menu-open');
-    } else {
-      document.body.classList.remove('menu-open');
-    }
-    return () => document.body.classList.remove('menu-open');
-  }, [menuOpen]);
-
-  // Close menu on route change
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
-
-  // Close menu on resize to desktop
-  useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth > 768) setMenuOpen(false);
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   return (
     <div className="app-container">
       <header className="header">
         <h1>
-          <svg width="28" height="28" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="48" fill="white"/>
-            <path d="M50 15 C50 15 25 45 25 60 C25 75 36 85 50 85 C64 85 75 75 75 60 C75 45 50 15 50 15 Z" fill="#0052CC"/>
-            <path d="M32 58 Q38 52 44 58 Q50 64 56 58 Q62 52 68 58" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round"/>
+          <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="48" fill="white" />
+            <path d="M50 15 C50 15 25 45 25 60 C25 75 36 85 50 85 C64 85 75 75 75 60 C75 45 50 15 50 15 Z" fill="#0052CC" />
+            <path d="M32 58 Q38 52 44 58 Q50 64 56 58 Q62 52 68 58" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" />
           </svg>
           DiaTrack
         </h1>
-        <button
-          className={`hamburger${menuOpen ? ' open' : ''}`}
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Menü"
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        <nav className={menuOpen ? 'open' : ''}>
+
+        {/* Desktop navigation — hidden on mobile, where the bottom bar takes over */}
+        <nav className="header-nav">
           <NavLink to="/" className={location.pathname === '/' ? 'active' : ''}>
             <DashboardIcon label="" /> Übersicht
           </NavLink>
@@ -121,9 +90,26 @@ export default function Layout({ children }: LayoutProps) {
             </Button>
           </div>
         </nav>
+
+        {/* Compact action cluster — only shown on mobile */}
+        <div className="header-actions">
+          <MemoThemeToggle />
+          <Tooltip content="Abmelden">
+            <button
+              type="button"
+              onClick={logout}
+              className="header-icon-button"
+              aria-label="Abmelden"
+            >
+              <LogOutIcon label="" />
+            </button>
+          </Tooltip>
+        </div>
       </header>
-      {menuOpen && <div className="nav-overlay" onClick={() => setMenuOpen(false)} />}
+
       <main className="main-content">{children}</main>
+
+      <BottomNav />
     </div>
   );
 }
