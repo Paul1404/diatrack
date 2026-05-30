@@ -80,6 +80,11 @@ export default function Login() {
               onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
               placeholder="name@beispiel.de"
               isRequired
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
           </div>
 
@@ -93,6 +98,7 @@ export default function Login() {
               onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
               placeholder="••••••••"
               isRequired
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
             />
           </div>
 
@@ -109,6 +115,7 @@ export default function Login() {
                 }
                 placeholder="••••••••"
                 isRequired
+                autoComplete="new-password"
               />
             </div>
           )}

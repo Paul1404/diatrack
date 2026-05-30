@@ -9,7 +9,9 @@ class DeviceCreate(BaseModel):
     device_type: DeviceType
     body_location: BodyLocation
     start_time: Optional[datetime] = None  # If None, use current time
-    planned_duration_hours: Optional[float] = None  # If None, use user defaults
+    # If None, use user defaults. Bounded to avoid 0/negative durations that
+    # would later cause divide-by-zero when computing progress.
+    planned_duration_hours: Optional[float] = Field(None, gt=0, le=8760)
 
 
 class DeviceResponse(BaseModel):

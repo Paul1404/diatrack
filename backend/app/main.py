@@ -209,6 +209,20 @@ async def _db_transient_error_handler(request: Request, exc: Exception):
         headers={"Retry-After": "2"},
     )
 
+
+# Catch-all for anything unexpected: log the full trace server-side, but return
+# a clean JSON 500 so we never leak stack traces or internals to the client.
+# More specific handlers above (and FastAPI's HTTPException handler) take
+# precedence, so normal 4xx responses are unaffected.
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
 # Include routers
 app.include_router(auth_router)
 app.include_router(devices_router)

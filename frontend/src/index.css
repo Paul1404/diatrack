@@ -126,12 +126,6 @@ a, button, [role="button"], input, select, textarea {
   touch-action: manipulation;
 }
 
-body.menu-open {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-}
-
 body {
   background-color: var(--ds-background-neutral);
   color: var(--ds-text);
@@ -141,6 +135,7 @@ body {
 
 .app-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -158,7 +153,9 @@ body {
   background: var(--ds-background-brand-bold);
   color: var(--ds-text-inverse);
   padding: 0 24px;
-  height: 56px;
+  /* Extend into the notch / status bar area on devices that have one */
+  padding-top: env(safe-area-inset-top);
+  height: calc(56px + env(safe-area-inset-top));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -166,6 +163,26 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+/* Themed form input for native date/time pickers — adapts to dark mode,
+   unlike a hardcoded border/background would. */
+.date-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid var(--ds-border);
+  border-radius: 3px;
+  font-size: 16px;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  min-height: 40px;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--ds-border-focused);
 }
 
 .header h1 {
@@ -178,13 +195,13 @@ body {
   letter-spacing: -0.01em;
 }
 
-.header nav {
+.header-nav {
   display: flex;
   gap: 4px;
   align-items: center;
 }
 
-.header nav a {
+.header-nav a {
   color: var(--ds-text-inverse);
   text-decoration: none;
   padding: 8px 12px;
@@ -197,18 +214,45 @@ body {
   gap: 6px;
 }
 
-.header nav a span[role="img"] {
+.header-nav a span[role="img"] {
   display: flex;
   align-items: center;
   color: inherit;
 }
 
-.header nav a:hover {
+.header-nav a:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.header nav a.active {
+.header-nav a.active {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile-only header action cluster (theme toggle + logout). Hidden on desktop. */
+.header-actions {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon-button {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--ds-text-inverse);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.header-icon-button:active {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* Cards - Jira style */
@@ -347,10 +391,12 @@ body {
 /* Login Page - Atlassian Style */
 .login-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--ds-background-neutral);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
 
 .login-card {
@@ -469,40 +515,53 @@ select,
   font-size: 16px !important;
 }
 
-/* Hamburger button */
-.hamburger {
+/* Bottom tab bar — mobile only (shown via the media query below) */
+.bottom-nav {
   display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  z-index: 1100;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--ds-surface);
+  border-top: 1px solid var(--ds-border);
+  box-shadow: 0 -2px 8px rgba(9, 30, 66, 0.08);
+  z-index: 200;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  min-height: 56px;
+  text-decoration: none;
+  color: var(--ds-text-subtle);
+  font-size: 11px;
+  font-weight: 500;
   -webkit-tap-highlight-color: transparent;
+  transition: color 0.12s ease;
 }
 
-.hamburger span {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: white;
-  margin: 5px 0;
-  border-radius: 2px;
-  transition: transform 0.25s ease, opacity 0.2s ease;
+.bottom-nav-item.active {
+  color: var(--ds-text-brand);
 }
 
-.hamburger.open span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.hamburger.open span:nth-child(2) {
-  opacity: 0;
-}
-.hamburger.open span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+.bottom-nav-item:active {
+  background: var(--ds-background-neutral-subtle);
 }
 
-.nav-overlay {
-  display: none;
+.bottom-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav-label {
+  line-height: 1;
 }
 
 .nav-user {
@@ -553,75 +612,22 @@ select,
    ============================== */
 @media (max-width: 768px) {
 
-  /* Hamburger visible */
-  .hamburger {
-    display: block;
+  /* Swap the desktop top nav for the bottom tab bar + compact header cluster */
+  .header-nav {
+    display: none;
   }
 
-  /* Slide-in nav */
-  .header nav {
+  .header-actions {
     display: flex;
-    position: fixed;
-    top: 0;
-    right: -280px;
-    width: 280px;
-    height: 100vh;
-    height: 100dvh;
-    background: var(--ds-background-brand-bold);
-    flex-direction: column;
-    align-items: stretch;
-    padding: 72px 16px 24px;
-    gap: 0;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
-    z-index: 1050;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
-  .header nav.open {
-    right: 0;
+  .bottom-nav {
+    display: flex;
   }
 
-  .header nav a {
-    padding: 14px 16px;
-    font-size: 16px;
-    border-radius: 4px;
-  }
-
-  .header nav a.active {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .nav-user {
-    flex-direction: column;
-    align-items: stretch;
-    margin-top: auto;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    gap: 4px;
-  }
-
-  .nav-email {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-
-  .nav-overlay {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 1000;
-  }
-
-  /* Header - must sit above nav-overlay (1000) so hamburger and slide-in nav remain clickable */
   .header {
     padding: 0 16px;
-    z-index: 1100;
+    padding-top: env(safe-area-inset-top);
   }
 
   .header h1 {
@@ -634,9 +640,10 @@ select,
     height: 24px;
   }
 
-  /* Main content */
+  /* Main content — leave room for the fixed bottom nav so the last row of
+     content (and any sticky action) is never hidden behind it. */
   .main-content {
-    padding: 16px;
+    padding: 16px 16px calc(72px + env(safe-area-inset-bottom));
   }
 
   /* Page headings */
@@ -657,12 +664,18 @@ select,
 
   .device-actions {
     flex-wrap: wrap;
+    gap: 10px;
   }
 
   .device-actions button,
   .device-actions > * {
     flex: 1;
     min-width: 0;
+  }
+
+  /* Bigger, comfortable tap targets for the primary card actions */
+  .device-actions button {
+    min-height: 44px;
   }
 
   /* Stats grid */
@@ -777,10 +790,96 @@ select,
   }
 
   .main-content {
-    padding: 12px;
+    padding: 12px 12px calc(72px + env(safe-area-inset-bottom));
   }
 
   .chart-container {
     height: 220px;
   }
+}
+
+/* ==============================
+   History — mobile card list
+   ============================== */
+.history-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-left: 4px solid var(--ds-border-bold);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.history-card.sensor {
+  border-left-color: #6554c0;
+}
+
+.history-card.catheter {
+  border-left-color: #00b8d9;
+}
+
+.history-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.history-card-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ds-text);
+}
+
+.history-card-location {
+  color: var(--ds-text-subtle);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.history-card-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.history-card-rows dt {
+  color: var(--ds-text-subtlest);
+  white-space: nowrap;
+}
+
+.history-card-rows dd {
+  margin: 0;
+  color: var(--ds-text);
+  text-align: right;
+}
+
+/* ==============================
+   Inline load-error / retry state
+   ============================== */
+.load-error {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.load-error h3 {
+  margin: 0 0 8px;
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+.load-error p {
+  margin: 0 0 20px;
+  color: var(--ds-text-subtle);
+  font-size: 14px;
 }

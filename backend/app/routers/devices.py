@@ -26,8 +26,15 @@ def calculate_device_progress(device: Device) -> tuple[float, float]:
     now = datetime.now(timezone.utc)
     start = device.start_time.replace(tzinfo=timezone.utc) if device.start_time.tzinfo is None else device.start_time
     elapsed_hours = (now - start).total_seconds() / 3600
-    remaining_hours = max(0, device.planned_duration_hours - elapsed_hours)
-    progress_percent = min(100, (elapsed_hours / device.planned_duration_hours) * 100)
+
+    duration = device.planned_duration_hours
+    # Guard against bad/legacy data: a non-positive duration would divide by
+    # zero. Treat such a device as already expired rather than crashing.
+    if not duration or duration <= 0:
+        return 0.0, 100.0
+
+    remaining_hours = max(0, duration - elapsed_hours)
+    progress_percent = min(100, (elapsed_hours / duration) * 100)
 
     return remaining_hours, progress_percent
 
@@ -97,6 +104,10 @@ def create_device(
             planned_duration = current_user.settings.get("catheter_default_hours", 72)
     else:
         planned_duration = device_data.planned_duration_hours
+
+    # Final safety net against legacy settings that stored a 0/negative value.
+    if not planned_duration or planned_duration <= 0:
+        planned_duration = 240 if device_data.device_type == DeviceType.SENSOR else 72
 
     device = Device(
         user_id=current_user.id,
