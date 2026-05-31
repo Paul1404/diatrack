@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 data/
 frontend/dist/
+.venv/
+backend/.venv/

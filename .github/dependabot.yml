@@ -15,8 +15,8 @@ updates:
     labels:
       - "dependencies"
 
-  # Backend - pip
-  - package-ecosystem: "pip"
+  # Backend - uv
+  - package-ecosystem: "uv"
     directory: "/backend"
     schedule:
       interval: "weekly"

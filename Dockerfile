@@ -14,6 +14,9 @@ RUN bun run build
 # Stage 2: Build final image
 FROM python:3.13-slim
 
+# Bring in the uv binary from Astral's published image (pinned for reproducibility)
+COPY --from=ghcr.io/astral-sh/uv:0.11.17 /uv /uvx /bin/
+
 WORKDIR /app
 
 # Install system dependencies
@@ -21,9 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# uv config: compile bytecode for faster cold starts, copy into the image
+# instead of hardlinking, and use the base image's Python (no managed download).
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:$PATH"
+
+# Install dependencies first (cached layer) using only the lockfile + manifest
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # Copy backend application code
 COPY backend/ .
