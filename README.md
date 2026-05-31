@@ -77,12 +77,15 @@ docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d --build
 
 **Backend:**
 
+Install [uv](https://docs.astral.sh/uv/) first (`curl -LsSf https://astral.sh/uv/install.sh | sh`), then:
+
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
+
+`uv sync` creates a `.venv` and installs the exact versions pinned in `uv.lock`.
 
 **Frontend:**
 
