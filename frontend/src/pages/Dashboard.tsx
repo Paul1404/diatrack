@@ -396,7 +396,9 @@ export default function Dashboard() {
                 <label>Gerätetyp</label>
                 <Select
                   options={deviceTypeOptions}
-                  onChange={(option) => setNewDeviceType(option?.value || null)}
+                  onChange={(option: { value: string; label: string } | null) =>
+                    setNewDeviceType(option?.value || null)
+                  }
                   placeholder="Typ auswählen..."
                 />
               </div>
@@ -404,7 +406,9 @@ export default function Dashboard() {
                 <label>Körperstelle</label>
                 <Select
                   options={bodyLocationOptions}
-                  onChange={(option) => setNewBodyLocation(option?.value || null)}
+                  onChange={(option: { value: string; label: string } | null) =>
+                    setNewBodyLocation(option?.value || null)
+                  }
                   placeholder="Stelle auswählen..."
                 />
               </div>
@@ -484,7 +488,9 @@ export default function Dashboard() {
                 <label>Grund</label>
                 <Select
                   options={failureReasonOptions}
-                  onChange={(option) => setFailureReason(option?.value || null)}
+                  onChange={(option: { value: string; label: string } | null) =>
+                    setFailureReason(option?.value || null)
+                  }
                   placeholder="Grund auswählen..."
                 />
               </div>

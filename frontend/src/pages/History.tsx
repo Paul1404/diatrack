@@ -137,7 +137,9 @@ export default function History() {
           <Select
             options={daysOptions}
             value={daysOptions.find((o) => o.value === days)}
-            onChange={(option) => option && setDays(option.value)}
+            onChange={(option: { value: number; label: string } | null) =>
+              option && setDays(option.value)
+            }
             aria-label="Zeitraum"
           />
         </div>

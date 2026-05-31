@@ -115,7 +115,9 @@ export default function EmailLogsPanel() {
             <Select<{ value: StatusFilter; label: string }>
               options={STATUS_OPTIONS}
               value={currentStatusOption}
-              onChange={(opt) => setStatusFilter((opt?.value as StatusFilter) || 'all')}
+              onChange={(opt: { value: StatusFilter; label: string } | null) =>
+                setStatusFilter(opt?.value || 'all')
+              }
               isSearchable={false}
               spacing="compact"
             />
