@@ -23,3 +23,13 @@ dependencies = [
 # not try to build and install the project itself into the environment.
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
