@@ -20,7 +20,7 @@
     "@atlaskit/progress-bar": "^4.2.0",
     "@atlaskit/select": "^18.1.0",
     "@atlaskit/textfield": "^8.3.2",
-    "@atlaskit/toggle": "^15.6.0",
+    "@atlaskit/toggle": "^16.1.0",
     "@atlaskit/tokens": "^13.0.3",
     "@atlaskit/tooltip": "^22.2.0",
     "@emotion/react": "^11.13.0",
