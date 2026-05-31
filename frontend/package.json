@@ -18,7 +18,7 @@
     "@atlaskit/lozenge": "^13.8.1",
     "@atlaskit/modal-dialog": "^15.2.4",
     "@atlaskit/progress-bar": "^4.2.0",
-    "@atlaskit/select": "^18.1.0",
+    "@atlaskit/select": "^21.12.9",
     "@atlaskit/textfield": "^8.3.2",
     "@atlaskit/toggle": "^16.1.0",
     "@atlaskit/tokens": "^13.0.3",
