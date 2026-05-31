@@ -25,7 +25,7 @@
     "@atlaskit/tooltip": "^22.2.0",
     "@emotion/react": "^11.13.0",
     "date-fns": "^4.1.0",
-    "react": "^18.3.1",
+    "react": "^19.2.6",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.15.0",
     "recharts": "^3.8.1"
