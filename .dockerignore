@@ -1,11 +1,8 @@
 .git
 .gitignore
 .env*
-data/
-frontend/node_modules/
-frontend/dist/
-__pycache__/
-.venv/
-backend/.venv/
+node_modules/
+dist/
+.output/
+*.log
 README.md
-fly.toml

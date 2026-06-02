@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 90
+preDeployCommand = "bun run db:migrate:prod"
+restartPolicyType = "on_failure"
