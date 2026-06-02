@@ -55,7 +55,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/router-plugin": "^1.168.13",
     "@types/node": "^22.10.0",
-    "@types/nodemailer": "^7.0.4",
+    "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.11.10",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
