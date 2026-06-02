@@ -3,31 +3,19 @@
 
 version: 2
 updates:
-  # Frontend - npm
+  # App dependencies (Bun resolves the npm ecosystem)
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "sunday"
       time: "08:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels:
       - "dependencies"
 
-  # Backend - uv
-  - package-ecosystem: "uv"
-    directory: "/backend"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-      time: "08:00"
-      timezone: "Europe/Berlin"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-
-  # Docker
+  # Docker base images
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -35,3 +23,6 @@ updates:
       day: "sunday"
       time: "08:00"
       timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"

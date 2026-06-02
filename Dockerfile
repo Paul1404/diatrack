@@ -1,51 +1,32 @@
-# Stage 1: Build frontend with Bun (much faster than npm)
-FROM oven/bun:1-alpine AS frontend-builder
+# syntax=docker/dockerfile:1
 
-WORKDIR /app/frontend
-
-# Install deps first (cached layer when only source changes).
-# --frozen-lockfile means the build fails fast if bun.lock is stale.
-COPY frontend/package.json frontend/bun.lock ./
+# Stage 1: install all deps and build the app
+FROM oven/bun:1-alpine AS builder
+WORKDIR /app
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
-
-COPY frontend/ ./
+COPY . .
 RUN bun run build
 
-# Stage 2: Build final image
-FROM python:3.13-slim
-
-# Bring in the uv binary from Astral's published image (pinned for reproducibility)
-COPY --from=ghcr.io/astral-sh/uv:0.11.17 /uv /uvx /bin/
-
+# Stage 2: production-only dependencies
+FROM oven/bun:1-alpine AS prod-deps
 WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Stage 3: runtime
+FROM oven/bun:1-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 
-# uv config: compile bytecode for faster cold starts, copy into the image
-# instead of hardlinking, and use the base image's Python (no managed download).
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0 \
-    PATH="/app/.venv/bin:$PATH"
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json server.js migrate.mjs ./
+COPY drizzle ./drizzle
 
-# Install dependencies first (cached layer) using only the lockfile + manifest
-COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv sync --frozen --no-dev
+# Railway injects PORT; default to 3000 otherwise.
+ENV PORT=3000
+EXPOSE 3000
 
-# Copy backend application code
-COPY backend/ .
-
-# Copy built frontend to static directory
-COPY --from=frontend-builder /app/frontend/dist ./static
-
-# Create non-root user (no volume needed when using Neon)
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
-
-EXPOSE 8000
-
-# Railway injects PORT; use it when set, else default to 8000 for Docker Compose / Fly
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips '*'"]
+# Run migrations are handled by railway.toml preDeployCommand; start the server here.
+CMD ["bun", "server.js"]

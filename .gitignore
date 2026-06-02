@@ -1,8 +1,7 @@
 .env
+.env.local
 node_modules/
-__pycache__/
-*.pyc
-data/
-frontend/dist/
-.venv/
-backend/.venv/
+dist/
+.output/
+.tanstack/
+*.log
