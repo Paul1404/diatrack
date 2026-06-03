@@ -124,6 +124,14 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint
 DO $$ BEGIN
+ IF EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'devices' AND column_name = 'user_id' AND data_type <> 'text'
+ ) THEN
+  ALTER TABLE "devices" ALTER COLUMN "user_id" SET DATA TYPE text USING "user_id"::text;
+ END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
  ALTER TABLE "devices" ADD CONSTRAINT "devices_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
