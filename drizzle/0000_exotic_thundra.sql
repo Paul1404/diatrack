@@ -128,6 +128,7 @@ DO $$ BEGIN
   SELECT 1 FROM information_schema.columns
   WHERE table_schema = 'public' AND table_name = 'devices' AND column_name = 'user_id' AND data_type <> 'text'
  ) THEN
+  ALTER TABLE "devices" DROP CONSTRAINT IF EXISTS "devices_user_id_fkey";
   ALTER TABLE "devices" ALTER COLUMN "user_id" SET DATA TYPE text USING "user_id"::text;
  END IF;
 END $$;--> statement-breakpoint
