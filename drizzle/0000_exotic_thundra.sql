@@ -133,7 +133,7 @@ DO $$ BEGIN
   ALTER TABLE "devices" ALTER COLUMN "user_id" SET DATA TYPE text USING "user_id"::text;
  END IF;
 END $$;--> statement-breakpoint
-DELETE FROM "failure_logs" fl WHERE NOT EXISTS (SELECT 1 FROM "devices" d WHERE d."id" = fl."device_id");--> statement-breakpoint
+DELETE FROM "failure_logs" fl WHERE NOT EXISTS (SELECT 1 FROM "devices" d JOIN "user" u ON u."id" = d."user_id" WHERE d."id" = fl."device_id");--> statement-breakpoint
 DELETE FROM "devices" d WHERE NOT EXISTS (SELECT 1 FROM "user" u WHERE u."id" = d."user_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "devices" ADD CONSTRAINT "devices_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
