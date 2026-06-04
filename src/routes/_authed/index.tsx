@@ -191,6 +191,7 @@ function CreateDeviceDialog({
               <Input
                 id="start"
                 type="datetime-local"
+                max={toDatetimeLocal(new Date())}
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
               />
@@ -351,6 +352,7 @@ function EditDialog({
           <Input
             id="edit-start"
             type="datetime-local"
+            max={toDatetimeLocal(new Date())}
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
           />
