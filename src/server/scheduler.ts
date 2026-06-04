@@ -3,15 +3,15 @@ import { getAppSettings } from "~/server/app-settings";
 import { db } from "~/server/db";
 import { DEFAULT_USER_SETTINGS, devices, user } from "~/server/db/schema";
 import { sendDeviceReminder } from "~/server/email/send";
+import { dueReminderKeys, sentKeys } from "~/server/reminders";
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // every 15 minutes
-const WINDOW_HOURS = 0.25; // +/- 15 min tolerance around each reminder interval
 
 /**
- * Check active devices and send expiry reminders. For each active device, for
- * each of the user's reminder intervals, send once when the remaining time is
- * within the interval window and the reminder has not already been sent. Sent
- * reminders are tracked in devices.remindersSent (comma-separated "{n}h" keys).
+ * Check active devices and send expiry reminders. For each active device, send
+ * at most one reminder per run for the intervals that have become due, marking
+ * every crossed interval as sent. Sent reminders are tracked in
+ * devices.remindersSent (comma-separated "{n}h" keys).
  */
 export async function checkExpiringDevices(): Promise<void> {
   const maxAttempts = 3;
@@ -31,23 +31,14 @@ export async function checkExpiringDevices(): Promise<void> {
 
         const intervals =
           owner.settings?.reminderIntervalsHours ?? DEFAULT_USER_SETTINGS.reminderIntervalsHours;
-        const endTime = device.startTime.getTime() + device.plannedDurationHours * 3_600_000;
-        const hoursRemaining = (endTime - now) / 3_600_000;
+        const due = dueReminderKeys(device, intervals, now);
+        if (due.length === 0) continue;
 
-        let remindersSent = device.remindersSent;
-        for (const interval of intervals) {
-          const key = `${interval}h`;
-          if (remindersSent.includes(key)) continue;
-
-          if (
-            interval - WINDOW_HOURS <= hoursRemaining &&
-            hoursRemaining <= interval + WINDOW_HOURS
-          ) {
-            await sendDeviceReminder(device, owner.email, settings);
-            remindersSent = remindersSent ? `${remindersSent},${key}` : key;
-            await db.update(devices).set({ remindersSent }).where(eq(devices.id, device.id));
-          }
-        }
+        // Multiple intervals can come due at once after downtime; send a single
+        // reminder (the email reflects live remaining time) and mark them all.
+        await sendDeviceReminder(device, owner.email, settings);
+        const merged = [...sentKeys(device.remindersSent), ...due].join(",");
+        await db.update(devices).set({ remindersSent: merged }).where(eq(devices.id, device.id));
       }
 
       console.info(`[scheduler] checked ${activeDevices.length} active devices for reminders`);

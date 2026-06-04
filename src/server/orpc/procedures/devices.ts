@@ -122,9 +122,11 @@ export const update = authed
   .input(v.object({ id: v.number(), startTime: v.date() }))
   .handler(async ({ input, context }): Promise<DeviceResponse> => {
     const device = await ownedDevice(input.id, context.user.id);
+    // Reset sent reminders: the schedule changed, so reminders must be
+    // recomputed against the new start time instead of staying suppressed.
     const [updated] = await db
       .update(devices)
-      .set({ startTime: input.startTime })
+      .set({ startTime: input.startTime, remindersSent: "" })
       .where(eq(devices.id, device.id))
       .returning();
     const [failure] = await db
