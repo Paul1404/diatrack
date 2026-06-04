@@ -95,7 +95,14 @@ export function EmailLogsPanel() {
                 <TableCell>{e.toEmail}</TableCell>
                 <TableCell className="max-w-[16rem] truncate">{e.subject}</TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[e.status]}>{e.statusLabel}</Badge>
+                  <Badge variant={STATUS_VARIANT[e.status]} title={e.errorMessage ?? undefined}>
+                    {e.statusLabel}
+                  </Badge>
+                  {e.errorMessage && (
+                    <p className="mt-1 max-w-[16rem] truncate text-xs text-muted-foreground">
+                      {e.errorMessage}
+                    </p>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

@@ -11,6 +11,11 @@ import { ThemeProvider } from "~/components/theme-provider";
 import type { RouterContext } from "~/router";
 import appCss from "~/styles/app.css?url";
 
+// Applies the persisted / system theme synchronously, before first paint, so
+// dark-mode users never see a flash of the light theme. Must stay in sync with
+// the STORAGE_KEY used by ThemeProvider ("diatrack-theme").
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("diatrack-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}if(t==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
@@ -49,6 +54,8 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="de" suppressHydrationWarning>
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static pre-paint theme bootstrap */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
