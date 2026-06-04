@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS "verification" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+DELETE FROM "account" a WHERE NOT EXISTS (SELECT 1 FROM "user" u WHERE u."id" = a."user_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
@@ -132,16 +133,19 @@ DO $$ BEGIN
   ALTER TABLE "devices" ALTER COLUMN "user_id" SET DATA TYPE text USING "user_id"::text;
  END IF;
 END $$;--> statement-breakpoint
+DELETE FROM "devices" d WHERE NOT EXISTS (SELECT 1 FROM "user" u WHERE u."id" = d."user_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "devices" ADD CONSTRAINT "devices_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint
+DELETE FROM "failure_logs" fl WHERE NOT EXISTS (SELECT 1 FROM "devices" d WHERE d."id" = fl."device_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "failure_logs" ADD CONSTRAINT "failure_logs_device_id_devices_id_fk" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;--> statement-breakpoint
+DELETE FROM "session" s WHERE NOT EXISTS (SELECT 1 FROM "user" u WHERE u."id" = s."user_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
