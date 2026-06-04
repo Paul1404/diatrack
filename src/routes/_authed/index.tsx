@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DeviceCard } from "~/components/device-card";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { toDatetimeLocal } from "~/lib/format";
 import { orpc } from "~/lib/orpc";
 import type { DeviceResponse } from "~/server/devices";
 
@@ -31,7 +32,12 @@ export const Route = createFileRoute("/_authed/")({
 
 function DashboardPage() {
   const queryClient = useQueryClient();
-  const devicesQuery = useQuery(orpc.devices.list.queryOptions({ input: { activeOnly: true } }));
+  const devicesQuery = useQuery({
+    ...orpc.devices.list.queryOptions({ input: { activeOnly: true } }),
+    // Keep the countdown timers fresh without a manual refresh.
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: orpc.devices.key() });
@@ -229,6 +235,7 @@ function FailDialog({
   const reasonsQuery = useQuery(orpc.enums.failureReasons.queryOptions());
   const [reason, setReason] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [failedAt, setFailedAt] = useState<string>("");
 
   const failMutation = useMutation(
     orpc.devices.reportFailure.mutationOptions({
@@ -237,6 +244,7 @@ function FailDialog({
         onClose();
         setReason("");
         setNotes("");
+        setFailedAt("");
       },
     }),
   );
@@ -265,6 +273,15 @@ function FailDialog({
             </Select>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="failed-at">Zeitpunkt des Fehlers (optional)</Label>
+            <Input
+              id="failed-at"
+              type="datetime-local"
+              value={failedAt}
+              onChange={(e) => setFailedAt(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="notes">Notiz (optional)</Label>
             <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
@@ -283,6 +300,7 @@ function FailDialog({
                 id: device.id,
                 reason: reason as DeviceResponse["failureReason"] & string,
                 notes: notes || undefined,
+                failedAt: failedAt ? new Date(failedAt) : undefined,
               })
             }
           >
@@ -305,6 +323,12 @@ function EditDialog({
   onDone: () => void;
 }) {
   const [startTime, setStartTime] = useState<string>("");
+
+  // Pre-fill the field with the device's current start time so the user adjusts
+  // it instead of re-entering the whole timestamp.
+  useEffect(() => {
+    if (device) setStartTime(toDatetimeLocal(device.startTime));
+  }, [device]);
 
   const editMutation = useMutation(
     orpc.devices.update.mutationOptions({

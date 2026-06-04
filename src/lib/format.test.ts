@@ -26,4 +26,10 @@ describe("formatDuration", () => {
     expect(formatDuration(72)).toBe("3 T 0 Std");
     expect(formatDuration(10)).toBe("10 Std");
   });
+
+  it("never rolls remainder up to 24 hours", () => {
+    // 47.6h rounds to 48h -> 2 days 0h, not "1 T 24 Std".
+    expect(formatDuration(47.6)).toBe("2 T 0 Std");
+    expect(formatDuration(23.6)).toBe("1 T 0 Std");
+  });
 });
