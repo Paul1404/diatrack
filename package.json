@@ -10,6 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:prod": "node migrate.mjs",
+    "db:reset:prod": "node reset.mjs",
     "db:push": "drizzle-kit push",
     "db:seed": "bun run src/server/db/seed.ts",
     "lint": "biome check .",

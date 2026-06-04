@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY package.json server.js migrate.mjs ./
+COPY package.json server.js migrate.mjs reset.mjs ./
 COPY drizzle ./drizzle
 
 # Railway injects PORT; default to 3000 otherwise.
