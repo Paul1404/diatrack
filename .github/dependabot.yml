@@ -4,7 +4,7 @@
 version: 2
 updates:
   # App dependencies (Bun resolves the npm ecosystem)
-  - package-ecosystem: "npm"
+  - package-ecosystem: bun
     directory: "/"
     schedule:
       interval: "weekly"
