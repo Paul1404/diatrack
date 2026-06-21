@@ -1,0 +1,48 @@
+name: Sync bun.lock on Dependabot PRs
+
+# Dependabot's Bun support bumps package.json but frequently leaves bun.lock
+# stale, which then breaks `bun install --frozen-lockfile` in CI and on Railway.
+# This workflow regenerates the lockfile to match the updated manifest and
+# commits it back to the Dependabot PR branch so the PR is mergeable and deploys
+# cleanly.
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+
+# Only Dependabot PRs (same-repo branches), and only the lockfile is touched.
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfile:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1"
+
+      # --ignore-scripts: resolve and write the lockfile without executing any
+      # dependency lifecycle scripts (the workflow token has write access).
+      - name: Regenerate lockfile
+        run: bun install --ignore-scripts
+
+      - name: Commit bun.lock if it changed
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "bun.lock already in sync — nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore: sync bun.lock with package.json"
+          git push
