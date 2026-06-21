@@ -43,7 +43,7 @@
     "drizzle-valibot": "^0.4.2",
     "lucide-react": "^1.17.0",
     "nodemailer": "^9.0.1",
-    "pg": "^8.13.1",
+    "pg": "^8.22.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "recharts": "^3.8.1",
