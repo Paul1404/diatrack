@@ -8,6 +8,13 @@
       "when": 1780419150311,
       "tag": "0000_exotic_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782650648000,
+      "tag": "0001_add_device_lot_number",
+      "breakpoints": true
     }
   ]
 }
