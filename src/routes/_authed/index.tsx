@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Clipboard, Loader2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DateTimePicker } from "~/components/date-time-picker";
 import { DeviceCard } from "~/components/device-card";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { formatDateTime, toDatetimeLocal } from "~/lib/format";
+import { formatDateTime, formatDuration } from "~/lib/format";
 import { orpc } from "~/lib/orpc";
 import type { DeviceResponse } from "~/server/devices";
 
@@ -117,15 +118,23 @@ function CreateDeviceDialog({
   onDone: () => void;
 }) {
   const locationsQuery = useQuery(orpc.enums.bodyLocations.queryOptions());
+  const settingsQuery = useQuery(orpc.settings.get.queryOptions());
   const [deviceType, setDeviceType] = useState<"sensor" | "catheter">("sensor");
   const [bodyLocation, setBodyLocation] = useState<string>("");
-  const [startTime, setStartTime] = useState<string>("");
-  const [plannedEndTime, setPlannedEndTime] = useState<string>("");
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const [lotNumber, setLotNumber] = useState<string>("");
 
   useEffect(() => {
-    if (open && !startTime) setStartTime(toDatetimeLocal(new Date()));
+    if (open && !startTime) setStartTime(new Date());
   }, [open, startTime]);
+
+  const plannedDurationHours =
+    deviceType === "sensor"
+      ? (settingsQuery.data?.sensorDefaultHours ?? 240)
+      : (settingsQuery.data?.catheterDefaultHours ?? 72);
+  const plannedEndTime = startTime
+    ? new Date(startTime.getTime() + plannedDurationHours * 3_600_000)
+    : null;
 
   const createMutation = useMutation(
     orpc.devices.create.mutationOptions({
@@ -133,8 +142,7 @@ function CreateDeviceDialog({
         onDone();
         onOpenChange(false);
         setBodyLocation("");
-        setStartTime("");
-        setPlannedEndTime("");
+        setStartTime(null);
         setLotNumber("");
       },
     }),
@@ -142,18 +150,12 @@ function CreateDeviceDialog({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!bodyLocation) return;
-    const start = startTime ? new Date(startTime) : new Date();
-    const plannedEnd = plannedEndTime ? new Date(plannedEndTime) : null;
-    const plannedDurationHours = plannedEnd
-      ? Math.max(1, (plannedEnd.getTime() - start.getTime()) / 3_600_000)
-      : undefined;
+    if (!bodyLocation || !startTime) return;
     createMutation.mutate({
       deviceType,
       bodyLocation: bodyLocation as DeviceResponse["bodyLocation"],
       lotNumber: lotNumber || undefined,
-      startTime: start,
-      plannedDurationHours,
+      startTime,
     });
   }
 
@@ -211,25 +213,19 @@ function CreateDeviceDialog({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="start">Startdatum und Startzeit</Label>
-              <Input
-                id="start"
-                type="datetime-local"
-                max={toDatetimeLocal(new Date())}
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
+              <Label>Startdatum und Startzeit</Label>
+              <DateTimePicker value={startTime} onChange={setStartTime} max={new Date()} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="planned-end">Enddatum und Endzeit geplant</Label>
-              <Input
-                id="planned-end"
-                type="datetime-local"
-                placeholder="Standard"
-                min={startTime || undefined}
-                value={plannedEndTime}
-                onChange={(e) => setPlannedEndTime(e.target.value)}
-              />
+              <Label>Enddatum und Endzeit geplant</Label>
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                <p className="font-medium">
+                  {plannedEndTime ? formatDateTime(plannedEndTime) : "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDuration(plannedDurationHours)} aus deinen Einstellungen
+                </p>
+              </div>
             </div>
           </div>
 
@@ -237,7 +233,10 @@ function CreateDeviceDialog({
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Abbrechen
             </Button>
-            <Button type="submit" disabled={!bodyLocation || createMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={!bodyLocation || !startTime || createMutation.isPending}
+            >
               {createMutation.isPending && <Loader2 className="animate-spin" />}
               Anlegen
             </Button>
@@ -260,11 +259,11 @@ function FailDialog({
   const reasonsQuery = useQuery(orpc.enums.failureReasons.queryOptions());
   const [reason, setReason] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  const [failedAt, setFailedAt] = useState<string>("");
+  const [failedAt, setFailedAt] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (device) setFailedAt(toDatetimeLocal(new Date()));
+    if (device) setFailedAt(new Date());
   }, [device]);
 
   const failMutation = useMutation(
@@ -274,13 +273,13 @@ function FailDialog({
         onClose();
         setReason("");
         setNotes("");
-        setFailedAt("");
+        setFailedAt(null);
         setCopied(false);
       },
     }),
   );
 
-  const failureDate = failedAt ? new Date(failedAt) : new Date();
+  const failureDate = failedAt ?? new Date();
   const reportText = device ? sensorReportText(device, failureDate, reason, notes) : "";
 
   async function copyReport() {
@@ -326,13 +325,8 @@ function FailDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="failed-at">Zeitpunkt des Fehlers (optional)</Label>
-            <Input
-              id="failed-at"
-              type="datetime-local"
-              value={failedAt}
-              onChange={(e) => setFailedAt(e.target.value)}
-            />
+            <Label>Zeitpunkt des Fehlers</Label>
+            <DateTimePicker value={failedAt} onChange={setFailedAt} max={new Date()} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Notiz (optional)</Label>
@@ -353,7 +347,7 @@ function FailDialog({
                 id: device.id,
                 reason: reason as DeviceResponse["failureReason"] & string,
                 notes: notes || undefined,
-                failedAt: failedAt ? new Date(failedAt) : undefined,
+                failedAt: failedAt ?? undefined,
               })
             }
           >
@@ -375,17 +369,22 @@ function EditDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [startTime, setStartTime] = useState<string>("");
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const [lotNumber, setLotNumber] = useState<string>("");
 
   // Pre-fill the field with the device's current start time so the user adjusts
   // it instead of re-entering the whole timestamp.
   useEffect(() => {
     if (device) {
-      setStartTime(toDatetimeLocal(device.startTime));
+      setStartTime(new Date(device.startTime));
       setLotNumber(device.lotNumber ?? "");
     }
   }, [device]);
+
+  const plannedEndTime =
+    device && startTime
+      ? new Date(startTime.getTime() + device.plannedDurationHours * 3_600_000)
+      : null;
 
   const editMutation = useMutation(
     orpc.devices.update.mutationOptions({
@@ -416,14 +415,17 @@ function EditDialog({
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="edit-start">Startdatum und Startzeit</Label>
-            <Input
-              id="edit-start"
-              type="datetime-local"
-              max={toDatetimeLocal(new Date())}
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
+            <Label>Startdatum und Startzeit</Label>
+            <DateTimePicker value={startTime} onChange={setStartTime} max={new Date()} />
+          </div>
+          <div className="space-y-2">
+            <Label>Enddatum und Endzeit geplant</Label>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+              <p className="font-medium">{plannedEndTime ? formatDateTime(plannedEndTime) : "-"}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDuration(device?.plannedDurationHours ?? null)} gespeicherte Laufzeit
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -437,7 +439,7 @@ function EditDialog({
               startTime &&
               editMutation.mutate({
                 id: device.id,
-                startTime: new Date(startTime),
+                startTime,
                 lotNumber: device.deviceType === "sensor" ? lotNumber : undefined,
               })
             }
