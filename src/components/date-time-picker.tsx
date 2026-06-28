@@ -53,14 +53,17 @@ export function DateTimePicker({
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_7rem]">
       <Popover>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="outline"
             disabled={disabled}
-            className={cn("justify-start text-left font-normal", !value && "text-muted-foreground")}
+            className={cn(
+              "min-w-0 justify-start text-left font-normal",
+              !value && "text-muted-foreground",
+            )}
           >
             <CalendarIcon />
             {value ? format(value, "dd.MM.yyyy") : placeholder}
@@ -81,6 +84,7 @@ export function DateTimePicker({
       <Input
         id={timeId}
         type="time"
+        className="min-w-0"
         value={timeValue}
         disabled={disabled || !value}
         onChange={(e) => updateTime(e.target.value)}
