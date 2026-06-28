@@ -81,6 +81,7 @@ export const create = authed
     v.object({
       deviceType: deviceTypeSchema,
       bodyLocation: bodyLocationSchema,
+      lotNumber: v.optional(v.string()),
       startTime: v.optional(v.date()),
       plannedDurationHours: v.optional(v.pipe(v.number(), v.minValue(0))),
     }),
@@ -108,6 +109,7 @@ export const create = authed
         userId: context.user.id,
         deviceType: input.deviceType,
         bodyLocation: input.bodyLocation,
+        lotNumber: input.lotNumber?.trim() || null,
         startTime: input.startTime ?? new Date(),
         plannedDurationHours: planned,
         status: "active",
@@ -119,14 +121,26 @@ export const create = authed
   });
 
 export const update = authed
-  .input(v.object({ id: v.number(), startTime: v.date() }))
+  .input(
+    v.object({
+      id: v.number(),
+      startTime: v.optional(v.date()),
+      lotNumber: v.optional(v.string()),
+    }),
+  )
   .handler(async ({ input, context }): Promise<DeviceResponse> => {
     const device = await ownedDevice(input.id, context.user.id);
     // Reset sent reminders: the schedule changed, so reminders must be
     // recomputed against the new start time instead of staying suppressed.
+    const startTimeChanged =
+      input.startTime != null && input.startTime.getTime() !== device.startTime.getTime();
     const [updated] = await db
       .update(devices)
-      .set({ startTime: input.startTime, remindersSent: "" })
+      .set({
+        ...(input.startTime ? { startTime: input.startTime } : {}),
+        ...(input.lotNumber !== undefined ? { lotNumber: input.lotNumber.trim() || null } : {}),
+        ...(startTimeChanged ? { remindersSent: "" } : {}),
+      })
       .where(eq(devices.id, device.id))
       .returning();
     const [failure] = await db

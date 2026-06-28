@@ -41,9 +41,12 @@ export function DeviceCard({ device, onEnd, onFail, onEdit, onDelete }: DeviceCa
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Icon className="size-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="font-medium">{typeLabel}</p>
               <p className="text-sm text-muted-foreground">{device.bodyLocationLabel}</p>
+              {device.deviceType === "sensor" && device.lotNumber && (
+                <p className="truncate text-xs text-muted-foreground">Lot {device.lotNumber}</p>
+              )}
             </div>
           </div>
 
@@ -58,7 +61,7 @@ export function DeviceCard({ device, onEnd, onFail, onEdit, onDelete }: DeviceCa
                 Wechsel abschließen
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onFail(device)}>Fehler melden</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onEdit(device)}>Startzeit ändern</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onEdit(device)}>Gerät ändern</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -79,9 +82,10 @@ export function DeviceCard({ device, onEnd, onFail, onEdit, onDelete }: DeviceCa
             <Badge variant={badge}>{formatRemaining(device.remainingHours)}</Badge>
           </div>
           <Progress value={device.progressPercent ?? 0} indicatorClassName={indicator} />
-          <p className="text-xs text-muted-foreground">
-            Gestartet: {formatDateTime(device.startTime)}
-          </p>
+          <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+            <p>Start: {formatDateTime(device.startTime)}</p>
+            <p>Ende geplant: {formatDateTime(device.plannedEndTime)}</p>
+          </div>
         </div>
       </CardContent>
     </Card>

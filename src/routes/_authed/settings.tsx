@@ -126,7 +126,7 @@ function UserSettingsCard() {
               onChange={(e) => setIntervals(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={updateMutation.isPending}>
+          <Button type="submit" className="w-full sm:w-auto" disabled={updateMutation.isPending}>
             {updateMutation.isPending && <Loader2 className="animate-spin" />}
             {saved && <Check />}
             Speichern
@@ -274,7 +274,7 @@ function SmtpCard() {
 
         <div className="mt-6 space-y-2 border-t pt-4">
           <Label htmlFor="test-email">Test-E-Mail senden an</Label>
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Input
               id="test-email"
               type="email"
@@ -324,7 +324,7 @@ function DangerZoneCard() {
       </CardHeader>
       <CardContent>
         {confirming ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button
               variant="destructive"
               disabled={clearMutation.isPending}

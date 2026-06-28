@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS "devices" (
 	"user_id" text NOT NULL,
 	"device_type" "device_type" NOT NULL,
 	"body_location" "body_location" NOT NULL,
+	"lot_number" text,
 	"start_time" timestamp with time zone NOT NULL,
 	"planned_duration_hours" real NOT NULL,
 	"status" "device_status" DEFAULT 'active' NOT NULL,
@@ -118,6 +119,7 @@ CREATE TABLE IF NOT EXISTS "verification" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "devices" ADD COLUMN IF NOT EXISTS "lot_number" text;--> statement-breakpoint
 DELETE FROM "account" a WHERE NOT EXISTS (SELECT 1 FROM "user" u WHERE u."id" = a."user_id");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;

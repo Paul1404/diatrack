@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2, Plus } from "lucide-react";
+import { Clipboard, Loader2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DeviceCard } from "~/components/device-card";
 import { Button } from "~/components/ui/button";
@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { toDatetimeLocal } from "~/lib/format";
+import { formatDateTime, toDatetimeLocal } from "~/lib/format";
 import { orpc } from "~/lib/orpc";
 import type { DeviceResponse } from "~/server/devices";
 
@@ -55,12 +55,12 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Aktive Geräte</h1>
           <p className="text-sm text-muted-foreground">Sensoren und Katheter im Überblick.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button className="shrink-0" onClick={() => setCreateOpen(true)}>
           <Plus />
           Neues Gerät
         </Button>
@@ -120,7 +120,12 @@ function CreateDeviceDialog({
   const [deviceType, setDeviceType] = useState<"sensor" | "catheter">("sensor");
   const [bodyLocation, setBodyLocation] = useState<string>("");
   const [startTime, setStartTime] = useState<string>("");
-  const [duration, setDuration] = useState<string>("");
+  const [plannedEndTime, setPlannedEndTime] = useState<string>("");
+  const [lotNumber, setLotNumber] = useState<string>("");
+
+  useEffect(() => {
+    if (open && !startTime) setStartTime(toDatetimeLocal(new Date()));
+  }, [open, startTime]);
 
   const createMutation = useMutation(
     orpc.devices.create.mutationOptions({
@@ -129,7 +134,8 @@ function CreateDeviceDialog({
         onOpenChange(false);
         setBodyLocation("");
         setStartTime("");
-        setDuration("");
+        setPlannedEndTime("");
+        setLotNumber("");
       },
     }),
   );
@@ -137,11 +143,17 @@ function CreateDeviceDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!bodyLocation) return;
+    const start = startTime ? new Date(startTime) : new Date();
+    const plannedEnd = plannedEndTime ? new Date(plannedEndTime) : null;
+    const plannedDurationHours = plannedEnd
+      ? Math.max(1, (plannedEnd.getTime() - start.getTime()) / 3_600_000)
+      : undefined;
     createMutation.mutate({
       deviceType,
       bodyLocation: bodyLocation as DeviceResponse["bodyLocation"],
-      startTime: startTime ? new Date(startTime) : undefined,
-      plannedDurationHours: duration ? Number(duration) : undefined,
+      lotNumber: lotNumber || undefined,
+      startTime: start,
+      plannedDurationHours,
     });
   }
 
@@ -185,9 +197,21 @@ function CreateDeviceDialog({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {deviceType === "sensor" && (
             <div className="space-y-2">
-              <Label htmlFor="start">Startzeit (optional)</Label>
+              <Label htmlFor="lot-number">Sensor-Lotnummer</Label>
+              <Input
+                id="lot-number"
+                value={lotNumber}
+                autoComplete="off"
+                onChange={(e) => setLotNumber(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="start">Startdatum und Startzeit</Label>
               <Input
                 id="start"
                 type="datetime-local"
@@ -197,14 +221,14 @@ function CreateDeviceDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="duration">Dauer in Std (optional)</Label>
+              <Label htmlFor="planned-end">Enddatum und Endzeit geplant</Label>
               <Input
-                id="duration"
-                type="number"
-                min={1}
+                id="planned-end"
+                type="datetime-local"
                 placeholder="Standard"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+                min={startTime || undefined}
+                value={plannedEndTime}
+                onChange={(e) => setPlannedEndTime(e.target.value)}
               />
             </div>
           </div>
@@ -237,6 +261,11 @@ function FailDialog({
   const [reason, setReason] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [failedAt, setFailedAt] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (device) setFailedAt(toDatetimeLocal(new Date()));
+  }, [device]);
 
   const failMutation = useMutation(
     orpc.devices.reportFailure.mutationOptions({
@@ -246,9 +275,20 @@ function FailDialog({
         setReason("");
         setNotes("");
         setFailedAt("");
+        setCopied(false);
       },
     }),
   );
+
+  const failureDate = failedAt ? new Date(failedAt) : new Date();
+  const reportText = device ? sensorReportText(device, failureDate, reason, notes) : "";
+
+  async function copyReport() {
+    if (!reportText) return;
+    await navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
 
   return (
     <Dialog open={device != null} onOpenChange={(o) => !o && onClose()}>
@@ -257,7 +297,19 @@ function FailDialog({
           <DialogTitle>Fehler melden</DialogTitle>
           <DialogDescription>Warum musste das Gerät vorzeitig gewechselt werden?</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="max-h-[calc(100dvh-12rem)] space-y-4 overflow-y-auto pr-1">
+          {device?.deviceType === "sensor" && (
+            <div className="rounded-md border bg-muted/30 p-3">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Meldedaten</p>
+                <Button type="button" variant="outline" size="sm" onClick={copyReport}>
+                  <Clipboard />
+                  {copied ? "Kopiert" : "Kopieren"}
+                </Button>
+              </div>
+              <ReportRows device={device} failedAt={failureDate} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Grund</Label>
             <Select value={reason} onValueChange={setReason}>
@@ -324,11 +376,15 @@ function EditDialog({
   onDone: () => void;
 }) {
   const [startTime, setStartTime] = useState<string>("");
+  const [lotNumber, setLotNumber] = useState<string>("");
 
   // Pre-fill the field with the device's current start time so the user adjusts
   // it instead of re-entering the whole timestamp.
   useEffect(() => {
-    if (device) setStartTime(toDatetimeLocal(device.startTime));
+    if (device) {
+      setStartTime(toDatetimeLocal(device.startTime));
+      setLotNumber(device.lotNumber ?? "");
+    }
   }, [device]);
 
   const editMutation = useMutation(
@@ -344,18 +400,31 @@ function EditDialog({
     <Dialog open={device != null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Startzeit ändern</DialogTitle>
-          <DialogDescription>Korrigiere den Startzeitpunkt des Geräts.</DialogDescription>
+          <DialogTitle>Gerät ändern</DialogTitle>
+          <DialogDescription>Korrigiere Startzeit oder Sensor-Lotnummer.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="edit-start">Neue Startzeit</Label>
-          <Input
-            id="edit-start"
-            type="datetime-local"
-            max={toDatetimeLocal(new Date())}
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
+        <div className="space-y-4">
+          {device?.deviceType === "sensor" && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-lot-number">Sensor-Lotnummer</Label>
+              <Input
+                id="edit-lot-number"
+                value={lotNumber}
+                autoComplete="off"
+                onChange={(e) => setLotNumber(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="edit-start">Startdatum und Startzeit</Label>
+            <Input
+              id="edit-start"
+              type="datetime-local"
+              max={toDatetimeLocal(new Date())}
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
@@ -366,7 +435,11 @@ function EditDialog({
             onClick={() =>
               device &&
               startTime &&
-              editMutation.mutate({ id: device.id, startTime: new Date(startTime) })
+              editMutation.mutate({
+                id: device.id,
+                startTime: new Date(startTime),
+                lotNumber: device.deviceType === "sensor" ? lotNumber : undefined,
+              })
             }
           >
             {editMutation.isPending && <Loader2 className="animate-spin" />}
@@ -376,6 +449,45 @@ function EditDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function ReportRows({ device, failedAt }: { device: DeviceResponse; failedAt: Date }) {
+  const rows = [
+    ["Sensor-Lotnummer", device.lotNumber || "-"],
+    ["Start", formatDateTime(device.startTime)],
+    ["Geplantes Ende", formatDateTime(device.plannedEndTime)],
+    ["Ausfall", formatDateTime(failedAt)],
+  ];
+
+  return (
+    <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-x-3 gap-y-2 text-sm">
+      {rows.map(([label, value]) => (
+        <div key={label} className="contents">
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="break-words font-medium">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function sensorReportText(
+  device: DeviceResponse,
+  failedAt: Date,
+  reason: string,
+  notes: string,
+): string {
+  const lines = [
+    "Sensor-Ausfall",
+    `Lotnummer: ${device.lotNumber || "-"}`,
+    `Start: ${formatDateTime(device.startTime)}`,
+    `Geplantes Ende: ${formatDateTime(device.plannedEndTime)}`,
+    `Ausfall: ${formatDateTime(failedAt)}`,
+    `Körperstelle: ${device.bodyLocationLabel}`,
+  ];
+  if (reason) lines.push(`Grund: ${reason}`);
+  if (notes) lines.push(`Notiz: ${notes}`);
+  return lines.join("\n");
 }
 
 function DeleteDialog({

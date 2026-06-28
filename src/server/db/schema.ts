@@ -131,6 +131,7 @@ export const devices = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     deviceType: deviceTypeEnum("device_type").notNull(),
     bodyLocation: bodyLocationEnum("body_location").notNull(),
+    lotNumber: text("lot_number"),
     startTime: timestamp("start_time", { withTimezone: true }).notNull(),
     plannedDurationHours: real("planned_duration_hours").notNull(),
     status: deviceStatusEnum("status").default("active").notNull(),

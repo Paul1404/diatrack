@@ -159,7 +159,9 @@ export interface HistoryEntry {
   deviceType: DeviceType;
   bodyLocation: BodyLocation;
   bodyLocationLabel: string;
+  lotNumber: string | null;
   startTime: Date;
+  plannedEndTime: Date;
   endedAt: Date | null;
   plannedDurationHours: number;
   actualDurationHours: number | null;
@@ -197,7 +199,9 @@ export const history = authed
         deviceType: d.deviceType,
         bodyLocation: d.bodyLocation,
         bodyLocationLabel: BODY_LOCATION_LABELS[d.bodyLocation],
+        lotNumber: d.lotNumber,
         startTime: d.startTime,
+        plannedEndTime: new Date(d.startTime.getTime() + d.plannedDurationHours * 3_600_000),
         endedAt: d.endedAt,
         plannedDurationHours: d.plannedDurationHours,
         actualDurationHours: actual,

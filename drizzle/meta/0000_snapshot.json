@@ -210,6 +210,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "lot_number": {
+          "name": "lot_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "start_time": {
           "name": "start_time",
           "type": "timestamp with time zone",

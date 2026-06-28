@@ -6,7 +6,9 @@ export interface DeviceResponse {
   deviceType: Device["deviceType"];
   bodyLocation: Device["bodyLocation"];
   bodyLocationLabel: string;
+  lotNumber: string | null;
   startTime: Date;
+  plannedEndTime: Date;
   plannedDurationHours: number;
   status: Device["status"];
   endedAt: Date | null;
@@ -46,12 +48,17 @@ export function calculateDeviceProgress(
 
 export function deviceToResponse(device: Device, failure: FailureLog | null): DeviceResponse {
   const { remainingHours, progressPercent } = calculateDeviceProgress(device);
+  const plannedEndTime = new Date(
+    device.startTime.getTime() + device.plannedDurationHours * 3_600_000,
+  );
   return {
     id: device.id,
     deviceType: device.deviceType,
     bodyLocation: device.bodyLocation,
     bodyLocationLabel: bodyLocationLabel(device.bodyLocation),
+    lotNumber: device.lotNumber,
     startTime: device.startTime,
+    plannedEndTime,
     plannedDurationHours: device.plannedDurationHours,
     status: device.status,
     endedAt: device.endedAt,
