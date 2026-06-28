@@ -53,7 +53,7 @@ export function DateTimePicker({
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_7.5rem]">
+    <div className="grid gap-2">
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -66,7 +66,7 @@ export function DateTimePicker({
             {value ? format(value, "dd.MM.yyyy") : placeholder}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-[18.5rem] p-0" align="start">
           <Calendar
             mode="single"
             selected={value ?? undefined}

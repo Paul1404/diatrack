@@ -15,27 +15,31 @@ export function Calendar({
     <DayPicker
       locale={de}
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-2", className)}
       classNames={{
-        months: "flex flex-col",
-        month: "space-y-4",
-        caption: "relative flex items-center justify-center pt-1",
+        root: "w-fit",
+        months: "flex flex-col gap-4",
+        month: "space-y-3",
+        month_caption: "relative flex h-8 items-center justify-center",
         caption_label: "text-sm font-medium",
-        nav: "flex items-center gap-1",
-        nav_button: cn(
+        nav: "absolute inset-x-0 top-2 flex items-center justify-between px-2",
+        button_previous: cn(
           buttonVariants({ variant: "outline" }),
           "size-7 bg-transparent p-0 opacity-70 hover:opacity-100",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "w-9 rounded-md text-[0.8rem] font-normal text-muted-foreground",
-        row: "mt-2 flex w-full",
-        cell: "relative size-9 p-0 text-center text-sm focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "size-9 p-0 font-normal"),
+        button_next: cn(
+          buttonVariants({ variant: "outline" }),
+          "size-7 bg-transparent p-0 opacity-70 hover:opacity-100",
+        ),
+        month_grid: "w-full border-collapse",
+        weekdays: "grid grid-cols-7",
+        weekday:
+          "flex size-9 items-center justify-center text-[0.8rem] font-normal text-muted-foreground",
+        week: "grid grid-cols-7",
+        day: "size-9 p-0 text-center text-sm",
+        day_button: cn(buttonVariants({ variant: "ghost" }), "size-9 p-0 font-normal"),
         selected:
-          "rounded-md bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+          "[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary [&_button]:hover:text-primary-foreground",
         today: "rounded-md bg-accent text-accent-foreground",
         outside: "text-muted-foreground opacity-50",
         disabled: "text-muted-foreground opacity-50",
