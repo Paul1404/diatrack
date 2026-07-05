@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
-    "@tailwindcss/vite": "^4.3.1",
+    "@tailwindcss/vite": "^4.3.2",
     "@tanstack/router-plugin": "^1.168.18",
     "@types/node": "^26.0.0",
     "@types/nodemailer": "^8.0.1",
