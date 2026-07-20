@@ -2,7 +2,7 @@
 // Run with: bun run generate:icons
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import sharp from "sharp";
+import sharp, { type FormatEnum } from "sharp";
 
 const PUBLIC = join(process.cwd(), "public");
 const SVG = join(PUBLIC, "favicon.svg");
@@ -32,7 +32,7 @@ async function main() {
   // Wrap the 48px PNG as ICO via sharp's ico support when available; fall back to png bytes.
   try {
     const icoBuf = await sharp(ico)
-      .toFormat("ico" as keyof sharp.FormatEnum)
+      .toFormat("ico" as keyof FormatEnum & string)
       .toBuffer();
     await writeFile(join(PUBLIC, "favicon.ico"), icoBuf);
   } catch {

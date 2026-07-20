@@ -13,7 +13,6 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"]
     }

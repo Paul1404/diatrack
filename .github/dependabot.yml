@@ -12,6 +12,26 @@ updates:
       time: "08:00"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      nodemailer:
+        patterns:
+          - "nodemailer"
+          - "@types/nodemailer"
     labels:
       - "dependencies"
 

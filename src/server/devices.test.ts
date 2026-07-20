@@ -8,6 +8,7 @@ function makeDevice(overrides: Partial<Device> = {}): Device {
     userId: "u1",
     deviceType: "sensor",
     bodyLocation: "abdomen_left",
+    lotNumber: null,
     startTime: new Date(),
     plannedDurationHours: 240,
     status: "active",
