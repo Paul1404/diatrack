@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getAppSettings } from "~/server/app-settings";
-import { db } from "~/server/db";
+import { DatabaseUnavailableError, db, ensureDatabaseReady } from "~/server/db";
 import { DEFAULT_USER_SETTINGS, devices, user } from "~/server/db/schema";
 import { sendDeviceReminder } from "~/server/email/send";
 import { dueReminderKeys, sentKeys } from "~/server/reminders";
@@ -17,6 +17,7 @@ export async function checkExpiringDevices(): Promise<void> {
   const maxAttempts = 3;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
+      await ensureDatabaseReady();
       const settings = await getAppSettings();
       const activeDevices = await db.select().from(devices).where(eq(devices.status, "active"));
       const now = Date.now();
@@ -46,6 +47,10 @@ export async function checkExpiringDevices(): Promise<void> {
     } catch (err) {
       const isLast = attempt === maxAttempts - 1;
       if (isLast) {
+        if (err instanceof DatabaseUnavailableError) {
+          console.info("[scheduler] PostgreSQL is still waking; reminder check deferred");
+          return;
+        }
         console.error("[scheduler] failed to check expiring devices:", err);
         return;
       }

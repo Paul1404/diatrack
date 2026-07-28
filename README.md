@@ -72,6 +72,13 @@ the healthcheck hits `/api/health`, and migrations run on every deploy via the
 Required environment variables (see `.env.example`):
 
 - `DATABASE_URL` — provided automatically when a Postgres service is attached (`${{Postgres.DATABASE_URL}}`)
+
+Both the app and PostgreSQL services may use Railway Serverless independently.
+Dynamic requests wait through PostgreSQL cold starts with bounded retries; if
+the database is still unavailable, the app returns `503` with `Retry-After: 2`
+instead of exposing a connection error. Railway itself may return a one-time
+`502` while waking the app, so external monitors and API clients should retry
+`502` and `503` responses.
 - `BETTER_AUTH_SECRET` — strong random string
 - `BETTER_AUTH_URL` — the public URL of the deployment
 - `ALLOW_REGISTRATION` — `true` only while creating accounts
