@@ -46,9 +46,9 @@
     "lucide-react": "^1.25.0",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
-    "react": "^19.2.7",
+    "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
-    "react-dom": "^19.2.7",
+    "react-dom": "^19.2.8",
     "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0",
     "valibot": "^1.4.2"
