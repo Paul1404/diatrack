@@ -19,9 +19,9 @@
     "generate:icons": "bun run scripts/generate-icons.ts"
   },
   "dependencies": {
-    "@orpc/client": "^1.14.15",
-    "@orpc/server": "^1.14.15",
-    "@orpc/tanstack-query": "^1.14.15",
+    "@orpc/client": "^1.15.0",
+    "@orpc/server": "^1.15.0",
+    "@orpc/tanstack-query": "^1.15.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-label": "^2.1.15",
