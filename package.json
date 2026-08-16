@@ -45,7 +45,7 @@
     "drizzle-valibot": "^0.4.2",
     "lucide-react": "^1.30.0",
     "nodemailer": "^9.0.5",
-    "pg": "^8.22.0",
+    "pg": "^8.23.0",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.8",
