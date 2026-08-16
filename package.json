@@ -54,7 +54,7 @@
     "valibot": "^1.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.7",
+    "@biomejs/biome": "^2.5.8",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.168.27",
     "@types/node": "^26.2.0",
