@@ -15,6 +15,13 @@
       "when": 1782650648000,
       "tag": "0001_add_device_lot_number",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788471668883,
+      "tag": "0002_add_account_issuer",
+      "breakpoints": true
     }
   ]
 }
