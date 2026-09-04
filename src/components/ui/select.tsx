@@ -1,5 +1,5 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import type * as React from "react";
 import { cn } from "~/lib/utils";
 
@@ -28,6 +28,40 @@ export function SelectTrigger({
   );
 }
 
+export function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      className={cn(
+        "flex cursor-default items-center justify-center bg-popover py-1 text-muted-foreground",
+        className,
+      )}
+      {...props}
+    >
+      <ChevronUp className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  );
+}
+
+export function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      className={cn(
+        "flex cursor-default items-center justify-center bg-popover py-1 text-muted-foreground",
+        className,
+      )}
+      {...props}
+    >
+      <ChevronDown className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  );
+}
+
 export function SelectContent({
   className,
   children,
@@ -46,6 +80,7 @@ export function SelectContent({
         position={position}
         {...props}
       >
+        <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
             "p-1",
@@ -55,6 +90,7 @@ export function SelectContent({
         >
           {children}
         </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   );
