@@ -25,6 +25,7 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
 - Use generated Drizzle migrations and never edit generated route trees manually.
 - Preserve reminder idempotency so retries do not send duplicate notifications.
 - better-auth 1.7+ keys accounts on `(issuer, account_id)`; credential accounts use issuer `local:credential`. A generated migration that adds a NOT NULL column to a populated table must be edited to add it nullable, backfill, then enforce NOT NULL (see `drizzle/0002_add_account_issuer.sql`).
+- Tailwind CSS v4 needs `h-(--cell-size)` for CSS variables. The v3 form `h-[--cell-size]` compiles to invalid CSS and is silently dropped.
 - Railway's edge sets the client address in `X-Real-IP`; better-auth reads it via `advanced.ipAddress.ipAddressHeaders` in `src/server/auth.ts`.
 
 ## Commands

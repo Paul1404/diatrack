@@ -124,9 +124,11 @@ function CreateDeviceDialog({
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [lotNumber, setLotNumber] = useState<string>("");
 
+  // Seed the start time whenever the dialog opens. It must not depend on the
+  // current value, otherwise clearing the field would immediately refill it.
   useEffect(() => {
-    if (open && !startTime) setStartTime(new Date());
-  }, [open, startTime]);
+    if (open) setStartTime(new Date());
+  }, [open]);
 
   const plannedDurationHours =
     deviceType === "sensor"
@@ -213,8 +215,13 @@ function CreateDeviceDialog({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Startdatum und Startzeit</Label>
-              <DateTimePicker value={startTime} onChange={setStartTime} max={new Date()} />
+              <Label htmlFor="create-start-time">Startdatum und Startzeit</Label>
+              <DateTimePicker
+                id="create-start-time"
+                value={startTime}
+                onChange={setStartTime}
+                max={new Date()}
+              />
             </div>
             <div className="space-y-2">
               <Label>Enddatum und Endzeit geplant</Label>
@@ -325,8 +332,13 @@ function FailDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Zeitpunkt des Fehlers</Label>
-            <DateTimePicker value={failedAt} onChange={setFailedAt} max={new Date()} />
+            <Label htmlFor="failed-at">Zeitpunkt des Fehlers</Label>
+            <DateTimePicker
+              id="failed-at"
+              value={failedAt}
+              onChange={setFailedAt}
+              max={new Date()}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Notiz (optional)</Label>
@@ -415,8 +427,13 @@ function EditDialog({
             </div>
           )}
           <div className="space-y-2">
-            <Label>Startdatum und Startzeit</Label>
-            <DateTimePicker value={startTime} onChange={setStartTime} max={new Date()} />
+            <Label htmlFor="edit-start-time">Startdatum und Startzeit</Label>
+            <DateTimePicker
+              id="edit-start-time"
+              value={startTime}
+              onChange={setStartTime}
+              max={new Date()}
+            />
           </div>
           <div className="space-y-2">
             <Label>Enddatum und Endzeit geplant</Label>
