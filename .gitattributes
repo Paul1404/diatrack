@@ -1,0 +1,3 @@
+# Bundled agent tooling is not the application's implementation language.
+.cursor/skills/** linguist-vendored
+.agents/skills/** linguist-vendored

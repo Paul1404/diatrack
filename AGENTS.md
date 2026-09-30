@@ -42,6 +42,10 @@ State clearly when authenticated, database, deployment, or live verification was
 
 ## Maintaining instructions
 
+Public screenshots belong in `docs/screenshots/` and must use an isolated demo
+account with synthetic device history. Label the demo data in the README;
+never publish personal health records or account details.
+
 Update `AGENTS.md` when verified, durable repository behavior changes. Keep it concise and
 move detailed explanations into `docs/`. Keep `CLAUDE.md` as the compatibility import
 unless Claude-specific guidance is genuinely required.

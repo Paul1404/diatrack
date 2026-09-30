@@ -1,6 +1,25 @@
 # DiaTrack
 
-A self-hosted web app for tracking diabetes hardware, sensors and catheters, so you never forget when something needs changing.
+A self-hosted application for tracking diabetes sensors and catheters: when
+they were installed, how long they have left, where they were placed, and why
+a device ended early. Includes replacement reminders, history, and statistics.
+
+One TypeScript application on Bun, TanStack Start, and PostgreSQL. German UI.
+
+![DiaTrack active sensors and catheters with fictional device records](docs/screenshots/overview.png)
+
+Screenshots show the real application running locally with synthetic device
+records. They contain no personal health history.
+
+<details>
+<summary>Device history statistics</summary>
+
+![DiaTrack statistics calculated from synthetic device history](docs/screenshots/statistics.png)
+
+</details>
+
+[Features](#what-it-does) · [Local setup](#local-development) ·
+[Licensing](#licensing)
 
 ## Why I built this
 
@@ -19,6 +38,12 @@ Living with diabetes means constantly swapping sensors and catheters. It's easy 
 ## Tech stack
 
 One TypeScript app: TanStack Start (Router, Query, Form) on Vite, oRPC for the type-safe API, better-auth for sessions, Drizzle ORM on PostgreSQL, Valibot for validation, Tailwind CSS v4 with shadcn/ui, Biome and Vitest. Runtime is Bun.
+
+## Licensing
+
+No software license is currently specified. Public source availability alone
+does not grant permission to use or redistribute the code. This presentation
+update does not introduce or change licensing terms.
 
 ## Local development
 
@@ -71,7 +96,7 @@ the healthcheck hits `/api/health`, and migrations run on every deploy via the
 
 Required environment variables (see `.env.example`):
 
-- `DATABASE_URL` — provided automatically when a Postgres service is attached (`${{Postgres.DATABASE_URL}}`)
+- `DATABASE_URL` - provided automatically when a Postgres service is attached (`${{Postgres.DATABASE_URL}}`)
 
 Both the app and PostgreSQL services may use Railway Serverless independently.
 Dynamic requests wait through PostgreSQL cold starts with bounded retries; if
@@ -79,8 +104,8 @@ the database is still unavailable, the app returns `503` with `Retry-After: 2`
 instead of exposing a connection error. Railway itself may return a one-time
 `502` while waking the app, so external monitors and API clients should retry
 `502` and `503` responses.
-- `BETTER_AUTH_SECRET` — strong random string
-- `BETTER_AUTH_URL` — the public URL of the deployment
-- `ALLOW_REGISTRATION` — `true` only while creating accounts
+- `BETTER_AUTH_SECRET` - strong random string
+- `BETTER_AUTH_URL` - the public URL of the deployment
+- `ALLOW_REGISTRATION` - `true` only while creating accounts
 
 The app listens on `PORT` (injected by Railway).
