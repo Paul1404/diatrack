@@ -57,7 +57,7 @@
     "@biomejs/biome": "^2.5.15",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.168.42",
-    "@types/node": "26.5.1",
+    "@types/node": "26.6.3",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/react": "19.3.0",
