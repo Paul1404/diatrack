@@ -33,9 +33,31 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
 - `bun run lint`: Biome validation
 - `bun run test`: tests
 - `bun run build`: production build
+- `bun run test:release`: Chromium checks against the built production server.
+  Requires `DIATRACK_RELEASE_TEST=1` and `DATABASE_URL` pointing to a disposable
+  local database named `diatrack_release`. Run `RESET_DB=false bun migrate.mjs`
+  and `bun run build` first; use `bunx playwright install chromium` once.
+  The config starts the server with isolated auth settings and test registration.
+  `RELEASE_BASE_URL=http://127.0.0.1:<port>` instead targets an already running
+  local test container. Never point these write tests at production.
 - `bun run db:generate`: generate migrations
 
 ## Verification
+
+`main` requires an up-to-date pull request with `Lint, typecheck, test, build`
+and `Production release smoke` passing from GitHub Actions, plus
+`GitGuardian Security Checks`, including for administrators. No second-person
+approval is required. Do not bypass or
+temporarily disable protection to ship changes.
+
+CI's `Production release smoke` job uses PostgreSQL 17 (production's major
+version), migrates the actual Docker image twice, and tests mobile Chromium
+login, device persistence/completion, protected routes and cross-account
+read/delete denial. Fixtures use synthetic accounts and no SMTP configuration.
+Failure traces/screenshots contain only isolated test data.
+The CI browser runner uses the official Playwright `noble` image with its
+version derived from the installed, pinned `@playwright/test` package so browser
+binaries and the test runner stay compatible without separate OS provisioning.
 
 Run the relevant checks and exercise the affected workflow, endpoint, or generated artifact.
 State clearly when authenticated, database, deployment, or live verification was not possible.

@@ -6,3 +6,6 @@ dist/
 .output/
 *.log
 README.md
+test-results/
+playwright-report/
+.claude/
