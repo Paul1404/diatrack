@@ -65,7 +65,6 @@ jobs:
         with:
           bun-version: "1"
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
       - name: Build the production image
         run: docker build --tag diatrack-release .
       - name: Apply production migrations twice to the disposable database
@@ -86,7 +85,14 @@ jobs:
           curl --fail --retry 30 --retry-delay 2 --retry-connrefused
           --retry-max-time 90 http://127.0.0.1:4389/api/health
       - name: Exercise login, persistence and account isolation in Chromium
-        run: bun run test:release
+        timeout-minutes: 5
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e 'console.log(require("@playwright/test/package.json").version)')
+          docker run --rm --init --ipc=host --network host \
+            --volume "$PWD:/work" --workdir /work \
+            --env DIATRACK_RELEASE_TEST --env DATABASE_URL --env RELEASE_BASE_URL \
+            "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble" \
+            node node_modules/@playwright/test/cli.js test --config playwright.release.config.ts
       - name: Save browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v7

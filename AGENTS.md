@@ -55,6 +55,9 @@ version), migrates the actual Docker image twice, and tests mobile Chromium
 login, device persistence/completion, protected routes and cross-account
 read/delete denial. Fixtures use synthetic accounts and no SMTP configuration.
 Failure traces/screenshots contain only isolated test data.
+The CI browser runner uses the official Playwright `noble` image with its
+version derived from the installed, pinned `@playwright/test` package so browser
+binaries and the test runner stay compatible without separate OS provisioning.
 
 Run the relevant checks and exercise the affected workflow, endpoint, or generated artifact.
 State clearly when authenticated, database, deployment, or live verification was not possible.
