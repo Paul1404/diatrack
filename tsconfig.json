@@ -17,6 +17,14 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts", "drizzle.config.ts", "scripts", "server.ts"],
+  "include": [
+    "src",
+    "vite.config.ts",
+    "drizzle.config.ts",
+    "scripts",
+    "server.ts",
+    "playwright.release.config.ts",
+    "tests/release"
+  ],
   "exclude": ["node_modules", "dist"]
 }

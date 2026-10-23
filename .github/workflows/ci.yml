@@ -38,3 +38,65 @@ jobs:
 
       - name: Build
         run: bun run build
+
+  production-release:
+    name: Production release smoke
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: diatrack_release
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d diatrack_release"
+          --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      DIATRACK_RELEASE_TEST: "1"
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/diatrack_release
+      RELEASE_BASE_URL: http://127.0.0.1:4389
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1"
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - name: Build the production image
+        run: docker build --tag diatrack-release .
+      - name: Apply production migrations twice to the disposable database
+        run: |
+          for attempt in 1 2; do
+            docker run --rm --network host --env DATABASE_URL --env RESET_DB=false diatrack-release bun migrate.mjs
+          done
+      - name: Start the production image
+        run: >-
+          docker run --detach --name diatrack-release --network host
+          --env DATABASE_URL --env PORT=4389
+          --env BETTER_AUTH_URL=http://127.0.0.1:4389
+          --env BETTER_AUTH_SECRET=isolated-diatrack-release-test-secret
+          --env ALLOW_REGISTRATION=true --env ADMIN_EMAIL=
+          diatrack-release
+      - name: Wait for database-backed readiness
+        run: >-
+          curl --fail --retry 30 --retry-delay 2 --retry-connrefused
+          --retry-max-time 90 http://127.0.0.1:4389/api/health
+      - name: Exercise login, persistence and account isolation in Chromium
+        run: bun run test:release
+      - name: Save browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-browser-diagnostics
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Container diagnostics and cleanup
+        if: always()
+        run: |
+          docker logs diatrack-release || true
+          docker rm --force diatrack-release || true

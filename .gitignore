@@ -4,4 +4,6 @@ node_modules/
 dist/
 .output/
 .tanstack/
+test-results/
+playwright-report/
 *.log
