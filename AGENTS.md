@@ -45,8 +45,9 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
 ## Verification
 
 `main` requires an up-to-date pull request with `Lint, typecheck, test, build`
-and `Production release smoke` passing from GitHub Actions, including for
-administrators. No second-person approval is required. Do not bypass or
+and `Production release smoke` passing from GitHub Actions, plus
+`GitGuardian Security Checks`, including for administrators. No second-person
+approval is required. Do not bypass or
 temporarily disable protection to ship changes.
 
 CI's `Production release smoke` job uses PostgreSQL 17 (production's major
