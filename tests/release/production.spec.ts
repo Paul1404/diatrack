@@ -36,6 +36,16 @@ test("production readiness and unauthenticated access", async ({ page, context }
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("button", { name: "Anmelden", exact: true })).toBeVisible();
+  const stylesheets = await page
+    .locator('link[rel="stylesheet"]')
+    .evaluateAll((links) => links.map((link) => (link as HTMLLinkElement).href));
+  expect(stylesheets.length).toBeGreaterThan(0);
+  for (const url of stylesheets) {
+    const response = await page.request.get(url);
+    expect(response.status(), `Missing login stylesheet: ${new URL(url).pathname}`).toBe(200);
+    expect(response.headers()["content-type"]).toContain("text/css");
+    expect((await response.body()).length).toBeGreaterThan(0);
+  }
   await expect(client(context).devices.list({})).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 });
 
@@ -48,6 +58,12 @@ test("login, sensor persistence, account isolation and completion", async ({
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", (response) => {
     if (response.status() >= 500) errors.push(`Server error: ${new URL(response.url()).pathname}`);
+    if (
+      response.status() >= 400 &&
+      ["script", "stylesheet", "image", "font"].includes(response.request().resourceType())
+    ) {
+      errors.push(`Broken asset: ${new URL(response.url()).pathname}`);
+    }
   });
   const email = await register(context);
   const logout = await context.request.post("/api/auth/sign-out", {
