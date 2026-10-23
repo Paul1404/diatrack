@@ -26,6 +26,11 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
 - Preserve reminder idempotency so retries do not send duplicate notifications.
 - better-auth 1.7+ keys accounts on `(issuer, account_id)`; credential accounts use issuer `local:credential`. A generated migration that adds a NOT NULL column to a populated table must be edited to add it nullable, backfill, then enforce NOT NULL (see `drizzle/0002_add_account_issuer.sql`).
 - Tailwind CSS v4 needs `h-(--cell-size)` for CSS variables. The v3 form `h-[--cell-size]` compiles to invalid CSS and is silently dropped.
+- Keep Tailwind's source base in `src/styles/app.css` explicitly scoped to
+  `src/`. Docker omits `.gitignore`; scanning the project root can include the
+  first build's `dist/` output in the server pass and produce a stylesheet hash
+  absent from `dist/client`. Release tests must fetch the SSR stylesheet URL,
+  not merely check that login and device actions work without styling.
 - Railway's edge sets the client address in `X-Real-IP`; better-auth reads it via `advanced.ipAddress.ipAddressHeaders` in `src/server/auth.ts`.
 
 ## Commands
