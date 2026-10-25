@@ -24,7 +24,7 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
 - Every protected oRPC procedure enforces authorization itself.
 - Use generated Drizzle migrations and never edit generated route trees manually.
 - Preserve reminder idempotency so retries do not send duplicate notifications.
-- better-auth 1.7+ keys accounts on `(issuer, account_id)`; credential accounts use issuer `local:credential`. A generated migration that adds a NOT NULL column to a populated table must be edited to add it nullable, backfill, then enforce NOT NULL (see `drizzle/0002_add_account_issuer.sql`).
+- Better Auth 1.7.3+ identifies accounts by `(provider_id, account_id)`. Migration 0003 makes the historical issuer nullable and replaces its unique index without deleting existing account data. Keep migration 0002 intact. New signups and existing-account login must both pass the production release tests.
 - Tailwind CSS v4 needs `h-(--cell-size)` for CSS variables. The v3 form `h-[--cell-size]` compiles to invalid CSS and is silently dropped.
 - Keep Tailwind's source base in `src/styles/app.css` explicitly scoped to
   `src/`. Docker omits `.gitignore`; scanning the project root can include the

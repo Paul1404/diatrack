@@ -96,9 +96,8 @@ export const account = pgTable(
   "account",
   {
     id: text("id").primaryKey(),
-    // better-auth 1.7 keys accounts on (issuer, accountId). Email/password
-    // accounts use the fixed namespace "local:credential" with accountId = user.id.
-    issuer: text("issuer").notNull(),
+    // Keep historical issuer values for rollback; Better Auth 1.7.3+ no longer writes it.
+    issuer: text("issuer"),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: text("user_id")
@@ -114,7 +113,9 @@ export const account = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("account_issuer_account_id_uidx").on(table.issuer, table.accountId)],
+  (table) => [
+    uniqueIndex("account_provider_account_id_uidx").on(table.providerId, table.accountId),
+  ],
 );
 
 export const verification = pgTable("verification", {

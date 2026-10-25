@@ -67,6 +67,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Build the production image
         run: docker build --tag diatrack-release .
+      - name: Seed an existing account on the previous schema
+        run: |
+          mkdir -p /tmp/diatrack-legacy-migrations/meta
+          cp drizzle/000[0-2]*.sql /tmp/diatrack-legacy-migrations/
+          bun -e 'const j=await Bun.file("drizzle/meta/_journal.json").json(); j.entries=j.entries.filter(e=>e.idx<3); await Bun.write("/tmp/diatrack-legacy-migrations/meta/_journal.json",JSON.stringify(j));'
+          bun -e 'const {Pool}=require("pg");const {drizzle}=require("drizzle-orm/node-postgres");const {migrate}=require("drizzle-orm/node-postgres/migrator");const p=new Pool({connectionString:process.env.DATABASE_URL});await migrate(drizzle(p),{migrationsFolder:"/tmp/diatrack-legacy-migrations"});await p.end();'
+          bun scripts/seed-legacy-release-account.mjs
       - name: Apply production migrations twice to the disposable database
         run: |
           for attempt in 1 2; do
