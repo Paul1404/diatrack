@@ -12,7 +12,7 @@ RUN bun run build
 FROM oven/bun:1.4.4-alpine AS prod-deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile
+RUN bun install --production --frozen-lockfile --omit=peer
 
 # Stage 3: runtime
 FROM oven/bun:1.4.4-alpine AS runner
