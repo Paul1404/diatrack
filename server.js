@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import handler from "./dist/server/server.js";
 import { readStaticFile } from "./static-file.js";
+import { SECURITY_HEADERS } from "./security-headers.js";
 
 const CLIENT_DIR = join(process.cwd(), "dist", "client");
 const PORT = Number(process.env.PORT) || 3000;
@@ -62,7 +63,7 @@ async function writeWebResponse(res, webRes) {
   webRes.headers.forEach((value, key) => {
     headers[key] = value;
   });
-  res.writeHead(webRes.status, headers);
+  res.writeHead(webRes.status, { ...headers, ...SECURITY_HEADERS });
   if (webRes.body) {
     const reader = webRes.body.getReader();
     while (true) {
@@ -75,13 +76,14 @@ async function writeWebResponse(res, webRes) {
 }
 
 const server = createServer(async (req, res) => {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
     if ((req.method === "GET" || req.method === "HEAD") && url.pathname !== "/") {
       const asset = await tryStatic(url.pathname);
       if (asset) {
-        res.writeHead(200, asset.headers);
+        res.writeHead(200, { ...asset.headers, ...SECURITY_HEADERS });
         res.end(req.method === "HEAD" ? undefined : asset.body);
         return;
       }

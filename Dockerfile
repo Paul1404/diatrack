@@ -12,7 +12,7 @@ RUN bun run build
 FROM oven/bun:1.4.4-alpine AS prod-deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile
+RUN bun install --production --frozen-lockfile --omit=peer
 
 # Stage 3: runtime
 FROM oven/bun:1.4.4-alpine AS runner
@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY package.json server.js static-file.js migrate.mjs ./
+COPY package.json server.js static-file.js security-headers.js migrate.mjs ./
 COPY drizzle ./drizzle
 
 # Railway injects PORT; default to 3000 otherwise.
@@ -29,4 +29,5 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Run migrations are handled by railway.toml preDeployCommand; start the server here.
+USER bun
 CMD ["bun", "server.js"]

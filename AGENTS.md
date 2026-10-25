@@ -116,3 +116,13 @@ instruction can retain a branch.
 
 Follow `SECURITY.md` for vulnerability reports. Keep reports private and omit
 credentials, production records and personal data from public issues and commits.
+
+## Production security gates
+
+Railway waits for successful GitHub workflows on `main`. Keep an always-running
+push workflow and do not cancel its main-branch runs. PR branch cleanup never
+justifies bypassing CI. Public repositories also enforce CodeQL results on main.
+Container security builds the production image and scans OS and library packages.
+Retain the complete report. Fixable HIGH/CRITICAL findings block delivery;
+upstream-unfixed findings remain visible and require explicit review. Do not add
+blanket scanner ignores or weaken these gates to make a release pass.

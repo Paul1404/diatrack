@@ -39,6 +39,11 @@ test("accounts created before the issuer cleanup still sign in", async ({ contex
 });
 
 test("production readiness and unauthenticated access", async ({ page, context }) => {
+  const login = await page.request.get("/login");
+  expect(login.headers()["x-frame-options"]).toBe("SAMEORIGIN");
+  expect(login.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(login.headers()["strict-transport-security"]).toContain("max-age=");
+  expect(login.headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
   const health = await page.request.get("/api/health");
   expect(health.status()).toBe(200);
   expect(await health.json()).toEqual({ status: "ok" });
@@ -53,6 +58,7 @@ test("production readiness and unauthenticated access", async ({ page, context }
     const response = await page.request.get(url);
     expect(response.status(), `Missing login stylesheet: ${new URL(url).pathname}`).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/css");
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
     expect((await response.body()).length).toBeGreaterThan(0);
   }
   await expect(client(context).devices.list({})).rejects.toMatchObject({ code: "UNAUTHORIZED" });
