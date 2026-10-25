@@ -76,3 +76,10 @@ never publish personal health records or account details.
 Update `AGENTS.md` when verified, durable repository behavior changes. Keep it concise and
 move detailed explanations into `docs/`. Keep `CLAUDE.md` as the compatibility import
 unless Claude-specific guidance is genuinely required.
+
+## Dependency audit gate
+
+CI runs `bun audit --production` against the committed lockfile before release
+checks. Run the full `bun audit` separately to track development-tool findings.
+Do not replace the lockfile audit with an empty Dependabot PR queue or suppress
+an advisory merely to make the gate pass.
