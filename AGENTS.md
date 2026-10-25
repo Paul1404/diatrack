@@ -79,7 +79,21 @@ unless Claude-specific guidance is genuinely required.
 
 ## Dependency audit gate
 
-CI runs `bun audit --production` against the committed lockfile before release
-checks. Run the full `bun audit` separately to track development-tool findings.
+CI runs the full `bun audit` against the committed lockfile before release
+checks, including development tools.
 Do not replace the lockfile audit with an empty Dependabot PR queue or suppress
 an advisory merely to make the gate pass.
+
+## Scoped dependency compatibility
+
+The `@esbuild-kit/core-utils>esbuild` override is parent-scoped. Its regression
+test checks both synchronous CommonJS and asynchronous ESM transforms used by
+Drizzle Kit. Keep the override scoped and validate schema loading and migrations
+when changing it. Nested overrides require a Bun version that supports lockfile
+version 3; CI and production must use a compatible runtime.
+The retired Python backend and its manifests are absent from the current source
+and runtime image. Reintroducing them requires a fresh dependency and deployment
+review; do not restore obsolete Python update targets.
+`bunx drizzle-kit export --sql` validates loading the actual TypeScript schema
+without connecting to a database; run it alongside the transform regression
+tests after changing this loader override.

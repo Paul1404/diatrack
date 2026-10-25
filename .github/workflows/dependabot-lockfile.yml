@@ -28,7 +28,7 @@ jobs:
       - name: Install bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1"
+          bun-version: "1.4.4"
 
       # --ignore-scripts: resolve and write the lockfile without executing any
       # dependency lifecycle scripts (the workflow token has write access).

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: install all deps and build the app
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1.4.4-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
@@ -9,13 +9,13 @@ COPY . .
 RUN bun run build
 
 # Stage 2: production-only dependencies
-FROM oven/bun:1-alpine AS prod-deps
+FROM oven/bun:1.4.4-alpine AS prod-deps
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --production --frozen-lockfile
 
 # Stage 3: runtime
-FROM oven/bun:1-alpine AS runner
+FROM oven/bun:1.4.4-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
