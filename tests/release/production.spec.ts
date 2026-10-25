@@ -29,6 +29,15 @@ async function register(context: BrowserContext) {
   return email;
 }
 
+test("accounts created before the issuer cleanup still sign in", async ({ context }) => {
+  const email = "legacy-release@example.invalid";
+  const response = await context.request.post("/api/auth/sign-in/email", {
+    data: { email, password },
+    headers: { origin: baseURL },
+  });
+  expect(response.ok(), "Existing credential account must survive the migration").toBe(true);
+});
+
 test("production readiness and unauthenticated access", async ({ page, context }) => {
   const health = await page.request.get("/api/health");
   expect(health.status()).toBe(200);
