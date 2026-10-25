@@ -3,9 +3,9 @@
 // built into dist/server/server.js. Importing that handler also boots the
 // in-process reminder scheduler (see src/server.ts).
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import handler from "./dist/server/server.js";
+import { readStaticFile } from "./static-file.js";
 
 const CLIENT_DIR = join(process.cwd(), "dist", "client");
 const PORT = Number(process.env.PORT) || 3000;
@@ -29,9 +29,8 @@ async function tryStatic(pathname) {
   const filePath = join(CLIENT_DIR, rel);
   if (!filePath.startsWith(CLIENT_DIR)) return null;
   try {
-    const info = await stat(filePath);
-    if (!info.isFile()) return null;
-    const body = await readFile(filePath);
+    const body = await readStaticFile(filePath);
+    if (body === null) return null;
     const ext = extname(filePath);
     const headers = { "content-type": MIME[ext] ?? "application/octet-stream" };
     // Hashed build assets never change; favicons/manifest get a one-day cache.

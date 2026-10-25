@@ -17,16 +17,19 @@ permissions:
 
 jobs:
   sync-lockfile:
-    if: github.actor == 'dependabot[bot]'
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Install bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.4.4"
 
@@ -36,6 +39,9 @@ jobs:
         run: bun install --ignore-scripts
 
       - name: Commit bun.lock if it changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BRANCH: ${{ github.head_ref }}
         run: |
           if git diff --quiet -- bun.lock; then
             echo "bun.lock already in sync — nothing to do."
@@ -45,4 +51,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bun.lock
           git commit -m "chore: sync bun.lock with package.json"
-          git push
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$PR_BRANCH"
