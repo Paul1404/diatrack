@@ -95,6 +95,17 @@ test("login, sensor persistence, account isolation and completion", async ({
 
   await page.getByRole("button", { name: "Neues Gerät", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Neues Gerät" });
+  const dateInput = dialog.getByLabel("Startdatum und Startzeit");
+  const originalDate = await dateInput.inputValue();
+  await dialog.getByRole("button", { name: "Kalender und Uhrzeit öffnen" }).click();
+  const calendar = page.locator('[data-slot="calendar"]');
+  await expect(calendar).toBeVisible();
+  await calendar.locator(".rdp-button_previous").click();
+  const day = calendar.locator("td button:not([disabled])").first();
+  await day.click();
+  await expect(dateInput).not.toHaveValue(originalDate);
+  await expect(calendar.locator('[data-selected-single="true"]')).toBeVisible();
+  await page.keyboard.press("Escape");
   await dialog.getByRole("combobox").nth(1).click();
   await page.getByRole("option", { name: "Bauch links", exact: true }).click();
   const lot = `release-${crypto.randomUUID()}`;
