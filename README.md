@@ -88,24 +88,20 @@ After creating your account you can set `ALLOW_REGISTRATION=false`.
 | `bun run test` | Vitest |
 | `bun run generate:icons` | Regenerate the favicon set from `public/favicon.svg` |
 
-## Deployment (Railway)
+## Deployment (Vertex)
 
-Railway builds the `Dockerfile` automatically. Configuration lives in `railway.toml`:
-the healthcheck hits `/api/health`, and migrations run on every deploy via the
-`preDeployCommand` (`bun run db:migrate:prod`).
+GitHub Actions publishes the scanned production image to GHCR after main CI
+passes. The private `vertex-fleet` repository promotes its digest to the Vertex
+RKE2 cluster. PostgreSQL uses Longhorn storage; a Kubernetes init container runs
+`bun run db:migrate:prod` before the application starts. `/api/health` provides
+the readiness and liveness check. Traefik terminates HTTPS for
+`diatrack.pdcd.net`.
 
 Required environment variables (see `.env.example`):
 
-- `DATABASE_URL` - provided automatically when a Postgres service is attached (`${{Postgres.DATABASE_URL}}`)
+- `DATABASE_URL`: PostgreSQL connection string
+- `BETTER_AUTH_SECRET`: strong random string, retained across deployments
+- `BETTER_AUTH_URL`: public application URL
+- `ALLOW_REGISTRATION`: `true` only while creating accounts
 
-Both the app and PostgreSQL services may use Railway Serverless independently.
-Dynamic requests wait through PostgreSQL cold starts with bounded retries; if
-the database is still unavailable, the app returns `503` with `Retry-After: 2`
-instead of exposing a connection error. Railway itself may return a one-time
-`502` while waking the app, so external monitors and API clients should retry
-`502` and `503` responses.
-- `BETTER_AUTH_SECRET` - strong random string
-- `BETTER_AUTH_URL` - the public URL of the deployment
-- `ALLOW_REGISTRATION` - `true` only while creating accounts
-
-The app listens on `PORT` (injected by Railway).
+The application listens on `PORT`, set to `3000` on Vertex.

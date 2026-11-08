@@ -4,7 +4,7 @@ import { getEnv } from "~/server/env";
 import { createDatabaseReadiness, isDatabaseWakeError } from "./readiness";
 import * as schema from "./schema";
 
-// Single pooled drizzle client. Postgres only (Railway DATABASE_URL).
+// Single pooled drizzle client using DATABASE_URL.
 // Serverless-tuned pool to survive cold starts without exhausting connections.
 const pool = new Pool({
   connectionString: getEnv().DATABASE_URL,
@@ -13,7 +13,7 @@ const pool = new Pool({
   connectionTimeoutMillis: 5_000,
 });
 
-// PostgreSQL may close idle clients when its Railway service sleeps. A pool
+// PostgreSQL can close idle clients during a restart or failover. A pool
 // error listener keeps that expected disconnect from becoming an uncaught
 // process error; the next request establishes a fresh connection.
 pool.on("error", (error) => {
