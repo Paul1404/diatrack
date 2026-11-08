@@ -24,10 +24,10 @@ COPY --from=builder /app/dist ./dist
 COPY package.json server.js static-file.js security-headers.js migrate.mjs ./
 COPY drizzle ./drizzle
 
-# Railway injects PORT; default to 3000 otherwise.
+# Vertex uses port 3000.
 ENV PORT=3000
 EXPOSE 3000
 
-# Run migrations are handled by railway.toml preDeployCommand; start the server here.
+# Fleet runs migrations in an init container before starting the server.
 USER bun
 CMD ["bun", "server.js"]

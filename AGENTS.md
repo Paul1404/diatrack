@@ -15,7 +15,7 @@ This is the canonical instruction file for this repository. Claude Code loads it
 
 DiaTrack tracks diabetes sensors, catheters, replacements, failures, and reminders.
 
-It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Valibot, Tailwind CSS, Biome, Vitest, Docker, and Railway.
+It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Valibot, Tailwind CSS, Biome, Vitest, Docker, and Vertex RKE2 with Fleet.
 
 ## Project rules
 
@@ -31,7 +31,9 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
   first build's `dist/` output in the server pass and produce a stylesheet hash
   absent from `dist/client`. Release tests must fetch the SSR stylesheet URL,
   not merely check that login and device actions work without styling.
-- Railway's edge sets the client address in `X-Real-IP`; better-auth reads it via `advanced.ipAddress.ipAddressHeaders` in `src/server/auth.ts`.
+- Vertex Traefik sets the client address in `X-Real-IP`; better-auth reads it
+  via `advanced.ipAddress.ipAddressHeaders` in `src/server/auth.ts`. Preserve
+  trusted-proxy behavior when changing the ingress.
 
 ## Commands
 
@@ -100,7 +102,7 @@ tests after changing this loader override.
 
 ## Main-only branch lifecycle and security reporting
 
-`main` is the only retained local and remote branch for this active Railway
+`main` is the only retained local and remote branch for this active
 repository. Temporary PR branches are allowed only while work is in progress.
 Keep required checks and branch protections; never bypass them to avoid a branch.
 Before finishing, merge validated work, delete the remote and local task branches,
@@ -119,8 +121,9 @@ credentials, production records and personal data from public issues and commits
 
 ## Production security gates
 
-Railway waits for successful GitHub workflows on `main`. Keep an always-running
-push workflow and do not cancel its main-branch runs. PR branch cleanup never
+Verified main-branch images are published to GHCR after CI and the image scan;
+Vertex Fleet promotes the published image digest. Keep an always-running push
+workflow and do not cancel its main-branch runs. PR branch cleanup never
 justifies bypassing CI. Public repositories also enforce CodeQL results on main.
 Container security builds the production image and scans OS and library packages.
 Retain the complete report. Fixable HIGH/CRITICAL findings block delivery;

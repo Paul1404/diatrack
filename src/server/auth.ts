@@ -40,7 +40,7 @@ export const auth = betterAuth({
   },
   advanced: {
     ipAddress: {
-      // Railway's edge sets X-Real-IP to the client address. better-auth 1.7
+      // Vertex Traefik sets X-Real-IP to the client address. better-auth 1.7
       // no longer trusts multi-hop X-Forwarded-For chains without a trusted
       // proxy list, so without this every visitor shares one rate-limit bucket.
       ipAddressHeaders: ["x-real-ip", "x-forwarded-for"],
