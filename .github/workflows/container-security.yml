@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  packages: write
 
 jobs:
   image-security:
@@ -44,3 +46,25 @@ jobs:
           path: image-vulnerabilities.json
           retention-days: 14
           if-no-files-found: error
+
+      - name: Publish verified image to Vertex registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 40); do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=push&per_page=10" --jq '[.workflow_runs[] | select(.head_sha == env.GITHUB_SHA and .event == "push")] | first | .conclusion // "pending"')
+            if [ "$state" = success ]; then ready=true; break; fi
+            if [ "$state" != pending ]; then echo "Main CI ended: $state"; exit 1; fi
+            sleep 15
+          done
+          if [ "$ready" != true ]; then echo "Main CI did not finish successfully"; exit 1; fi
+          current=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$current" != "$GITHUB_SHA" ]; then echo "Skipping superseded commit"; exit 0; fi
+          image="ghcr.io/paul1404/diatrack:sha-$GITHUB_SHA"
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag "production-security:$GITHUB_SHA" "$image"
+          docker push "$image"
