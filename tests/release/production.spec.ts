@@ -45,6 +45,9 @@ test("production readiness and unauthenticated access", async ({ page, context }
   expect(login.headers()["strict-transport-security"]).toContain("max-age=");
   expect(login.headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
   const health = await page.request.get("/api/health");
+  const live = await page.request.get("/api/live");
+  expect(live.status()).toBe(200);
+  expect(await live.json()).toEqual({ status: "ok" });
   expect(health.status()).toBe(200);
   expect(await health.json()).toEqual({ status: "ok" });
   await page.goto("/");

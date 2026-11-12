@@ -80,6 +80,12 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
+    if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/api/live") {
+      res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+      res.end(req.method === "HEAD" ? undefined : JSON.stringify({ status: "ok" }));
+      return;
+    }
+
     if ((req.method === "GET" || req.method === "HEAD") && url.pathname !== "/") {
       const asset = await tryStatic(url.pathname);
       if (asset) {
