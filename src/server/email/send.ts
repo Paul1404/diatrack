@@ -105,7 +105,7 @@ export async function sendDeviceReminder(
   device: Device,
   userEmail: string,
   settings: AppSettingsRow,
-): Promise<void> {
+): Promise<boolean> {
   const endTime = device.startTime.getTime() + device.plannedDurationHours * 3_600_000;
   const hoursRemaining = Math.max(0, (endTime - Date.now()) / 3_600_000);
 
@@ -128,7 +128,7 @@ export async function sendDeviceReminder(
     appUrl: settings.appUrl,
   });
 
-  await sendEmail({
+  return sendEmail({
     to: userEmail,
     subject: `DiaTrack: ${deviceTypeLabel} läuft in ca. ${rounded} Stunden ab`,
     html,

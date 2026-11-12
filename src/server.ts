@@ -3,7 +3,7 @@ import { DatabaseUnavailableError, ensureDatabaseReady } from "~/server/db";
 import { startScheduler } from "~/server/scheduler";
 
 // Boot the in-process reminder scheduler once when the server entry loads.
-startScheduler();
+if (process.env.REMINDER_SCHEDULER !== "external") startScheduler();
 
 const fetch = createStartHandler(defaultStreamHandler);
 

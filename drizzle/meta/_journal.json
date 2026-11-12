@@ -29,6 +29,13 @@
       "when": 1792930355675,
       "tag": "0003_restore_provider_account_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794502996645,
+      "tag": "0004_futuristic_gressill",
+      "breakpoints": true
     }
   ]
 }

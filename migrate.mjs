@@ -20,7 +20,6 @@ if (!url) {
 const shouldReset = process.env.RESET_DB === "true";
 
 const pool = new Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 });
-const db = drizzle(pool);
 
 // Railway may still be waking PostgreSQL when the pre-deploy step starts, so
 // wait for it (mirrors src/server/db/readiness.ts, which is not in this image).
@@ -53,6 +52,10 @@ async function waitForDatabase() {
 
 try {
   await waitForDatabase();
+  const client = await pool.connect();
+  try {
+  await client.query("select pg_advisory_lock($1, $2)", [1145655627, 2]);
+  const db = drizzle(client);
   if (shouldReset) {
     console.warn(
       "[migrate] RESET_DB=true -> dropping public schema and drizzle history (ALL DATA WILL BE LOST)",
@@ -65,6 +68,9 @@ try {
   console.info("[migrate] applying migrations...");
   await migrate(db, { migrationsFolder: "./drizzle" });
   console.info(shouldReset ? "[migrate] done, database is fresh" : "[migrate] done");
+  } finally {
+    client.release();
+  }
   await pool.end();
 } catch (err) {
   console.error("[migrate] failed:", err);

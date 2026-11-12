@@ -82,6 +82,11 @@ jobs:
           for attempt in 1 2; do
             docker run --rm --network host --env DATABASE_URL --env RESET_DB=false diatrack-release bun migrate.mjs
           done
+      - name: Run the bundled reminder job with an empty device list
+        run: >-
+          docker run --rm --network host --env DATABASE_URL
+          --env BETTER_AUTH_SECRET=isolated-diatrack-release-test-secret
+          diatrack-release bun dist/reminder-job.js
       - name: Start the production image
         run: >-
           docker run --detach --name diatrack-release --network host
