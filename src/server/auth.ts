@@ -16,6 +16,7 @@ export const auth = betterAuth({
       session: schema.session,
       account: schema.account,
       verification: schema.verification,
+      rateLimit: schema.rateLimit,
     },
   }),
   emailAndPassword: {
@@ -23,6 +24,7 @@ export const auth = betterAuth({
     // Registration is off by default, matching the old ALLOW_REGISTRATION flag.
     disableSignUp: !env.ALLOW_REGISTRATION,
   },
+  rateLimit: { storage: "database" },
   user: {
     additionalFields: {
       // is_admin replaces fastapi-users is_superuser. input:false so it can never

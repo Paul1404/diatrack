@@ -29,6 +29,8 @@ It uses Bun, TanStack Start, React, oRPC, better-auth, Drizzle, PostgreSQL, Vali
   in-process scheduler available until the Fleet cutover is complete. Record
   reminder state only after SMTP accepts the message. SMTP acceptance and the
   subsequent database update are not an atomic transaction.
+- Better Auth rate limiting uses PostgreSQL so web replicas share the same
+  counters. Migrations use a database advisory lock to serialize pod startup.
 - Better Auth 1.7.3+ identifies accounts by `(provider_id, account_id)`. Migration 0003 makes the historical issuer nullable and replaces its unique index without deleting existing account data. Keep migration 0002 intact. New signups and existing-account login must both pass the production release tests.
 - Tailwind CSS v4 needs `h-(--cell-size)` for CSS variables. The v3 form `h-[--cell-size]` compiles to invalid CSS and is silently dropped.
 - Keep Tailwind's source base in `src/styles/app.css` explicitly scoped to
